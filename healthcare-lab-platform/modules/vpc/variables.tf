@@ -1,48 +1,83 @@
 //Definition of variables for the Healthcare Lab Platform Terraform configuration
 
 
-//Define the AWS region variable where the resources will be deployed
-//Define la región de AWS donde se desplegarán los recursos
-variable "aws_region" {
-  description = "AWS region for deployment"
-  type        = string
-  default     = "us-east-1"
-}
+// VPC MODULE - VARIABLES
 
-//Define the project name variable for tagging resources
-//Define la variable del nombre del proyecto para etiquetar los recursos
+
+// Nombre del proyecto
+// Name of the project
 variable "project_name" {
-  description = "Project name for tagging"
-  type        = string
-  default     = "healthcare-lab"
+  description = "Nombre del proyecto"
+  type = string
 }
 
+// Ambiente (dev, staging, prod)
+// Environment (dev, staging, prod)
 variable "environment" {
-  description = "Deployment environment (e.g., dev, prod)"
-  type        = string
-  default     = "dev"
+  description = "Ambiente (dev, staging, prod)"
+  type = string
 }
 
-//Define the VPC CIDR block variable
-//Define la variable del bloque CIDR de la VPC
+// Dueño del proyecto
+// Project owner
+variable "owner" {
+  description = "Dueño del proyecto"
+  type = string
+}
+
+//Bloque CIDR para la VPC
+//CIDR block for the VPC
 variable "vpc_cidr" {
-  description = "CIDR block for the VPC"
+  description = "CIDR block para la VPC"
   type        = string
-  default     = "10.0.0.0/16"
+  
+  // Validación para asegurar que el CIDR es válido
+  // Validation to ensure the CIDR is valid
+  validation {
+    condition = can(cidrhost(var.vpc_cidr, 0))
+    error_message = "El vpc_cidr debe ser un CIDR válido."
+  }
 }
 
-//Define the public subnet CIDR blocks variable
-//Define la variable de los bloques CIDR de las subredes públicas
-variable "public_subnet_cidrs" {
-  description = "Public subnet CIDR block"
-  type        = string
-  default     = "10.0.1.0/24"
+// Zona de disponibilidad a usar
+// Availability zone to use
+variable "availability_zone" {
+  description = "Zona de disponibilidad a usar"
+  type = string
 }
 
-//Define the private subnet CIDR blocks variable
-//Define la variable de los bloques CIDR de las subredes privadas
-variable "private_subnet_cidrs" {
-  description = "Private subnet CIDR block"
-  type        = string
-  default     = "10.0.2.0/24"
+// Bloque CIDR para la subnet pública
+// CIDR block for the public subnet
+variable "public_subnet_cidr" {
+  description = "CIDR block para subnet pública"
+  type = string
+}
+
+// Bloque CIDR para la subnet privada
+// CIDR block for the private subnet
+variable "private_subnet_cidr" {
+  description = "CIDR block para subnet privada"
+  type = string
+}
+
+// Crear NAT Gateway para subnet privada
+// Create NAT Gateway for private subnet
+variable "enable_nat_gateway" {
+  description = "Crear NAT Gateway para subnet privada"
+  type = bool
+  default = true
+}
+
+// Habilitar DNS hostnames en la VPC
+// Enable DNS hostnames in the VPC
+variable "enable_dns_hostnames" {
+  description = "Habilitar DNS hostnames en la VPC"
+  type = bool
+  default = true
+}
+
+variable "enable_dns_support" {
+  description = "Habilitar DNS support en la VPC"
+  type = bool
+  default = true
 }
