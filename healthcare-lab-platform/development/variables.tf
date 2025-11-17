@@ -9,19 +9,19 @@ variable "common" {
   type = object({
     project_name = string
     environment  = string
+    owner        = string
   })
 }
 
-variable "owner" {
-  type        = string
-  description = "System owner"
-}
-
 variable "vpc" {
-  description = "VPC settings such as CIDR blocks for VPC and subnets"
+  description = "VPC configuration"
   type = object({
     vpc_cidr             = string
+    availability_zone    = string
     public_subnet_cidrs  = string
     private_subnet_cidrs = string
+    enable_dns_hostnames = bool
+    enable_dns_support   = bool
+    enable_nat_gateway   = bool
   })
 }
