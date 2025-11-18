@@ -34,3 +34,14 @@ variable "security_groups" {
     enable_ssh_access   = bool
   })
 }
+
+variable "s3" {
+  description = "S3 configuration"
+  type = object({
+    enable_versioning       = bool
+    lifecycle_rules_enabled = bool
+    days_to_transition_ia   = number
+    days_to_glacier         = number
+    enable_access_logging   = bool
+  })
+}

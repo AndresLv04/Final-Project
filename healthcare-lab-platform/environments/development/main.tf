@@ -25,6 +25,8 @@ module "vpc" {
   enable_nat_gateway   = var.vpc.enable_nat_gateway
 }
 
+//Despliegue del módulo Security Groups
+//Deployment of the Security Groups module
 module "security_groups" {
   source = "../../modules/security_group"
 
@@ -36,4 +38,25 @@ module "security_groups" {
   vpc_cidr            = var.vpc.vpc_cidr
   allowed_cidr_blocks = var.security_groups.allowed_cidr_blocks
   enable_ssh_access   = var.security_groups.enable_ssh_access
+}
+
+//Despliegue del módulo S3
+//Deployment of the S3 module
+module "s3" {
+  source = "../../modules/s3"
+
+  project_name = var.common.project_name
+  environment  = var.common.environment
+  owner        = var.common.owner
+
+  enable_versioning       = var.s3.enable_versioning
+  lifecycle_rules_enabled = var.s3.lifecycle_rules_enabled
+  days_to_transition_ia   = var.s3.days_to_transition_ia
+  days_to_glacier         = var.s3.days_to_glacier
+  days_to_expire          = 0
+
+  enable_encryption     = true
+  kms_key_id            = null
+  block_public_access   = true
+  enable_access_logging = var.s3.enable_access_logging
 }

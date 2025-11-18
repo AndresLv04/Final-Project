@@ -27,3 +27,13 @@ security_groups = {
   allowed_cidr_blocks = ["0.0.0.0/0"]
   enable_ssh_access   = false
 }
+
+// Configuración de S3
+// S3 configuration
+s3 = {
+  enable_versioning     = true
+  lifecycle_rules_enabled     = true
+  days_to_transition_ia = 90
+  days_to_glacier     = 180
+  enable_access_logging = true
+}

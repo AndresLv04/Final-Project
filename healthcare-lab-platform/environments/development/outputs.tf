@@ -28,5 +28,26 @@ output "availability_zone" {
 // Security Groups Outputs
 output "all_security_group_ids" {
   description = "Map of all security group IDs"
-  value = module.security_groups.all_security_group_ids 
+  value       = module.security_groups.all_security_group_ids
+}
+
+// S3 Outputs
+output "data_bucket_name" {
+  description = "Nombre del bucket de datos"
+  value       = module.s3.data_bucket_name
+}
+
+output "data_bucket_arn" {
+  description = "ARN del bucket de datos"
+  value       = module.s3.data_bucket_arn
+}
+
+output "logs_bucket_name" {
+  description = "Nombre del bucket de logs"
+  value       = module.s3.logs_bucket_id
+}
+
+output "bucket_prefixes" {
+  description = "Prefijos del bucket"
+  value       = module.s3.bucket_prefixes
 }
