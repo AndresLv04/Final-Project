@@ -20,3 +20,10 @@ vpc = {
   enable_dns_support   = true
   enable_nat_gateway   = true
 }
+
+// Configuración de security groups
+// Security groups configuration
+security_groups = {
+  allowed_cidr_blocks = ["0.0.0.0/0"]
+  enable_ssh_access   = false
+}

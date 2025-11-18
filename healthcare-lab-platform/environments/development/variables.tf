@@ -13,6 +13,7 @@ variable "common" {
   })
 }
 
+// VPC configuration
 variable "vpc" {
   description = "VPC configuration"
   type = object({
@@ -23,5 +24,13 @@ variable "vpc" {
     enable_dns_hostnames = bool
     enable_dns_support   = bool
     enable_nat_gateway   = bool
+  })
+}
+
+variable "security_groups" {
+  description = "Security groups configuration"
+  type = object({
+    allowed_cidr_blocks = list(string)
+    enable_ssh_access   = bool
   })
 }

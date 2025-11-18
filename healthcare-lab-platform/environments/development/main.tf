@@ -24,3 +24,16 @@ module "vpc" {
   enable_dns_support   = var.vpc.enable_dns_support
   enable_nat_gateway   = var.vpc.enable_nat_gateway
 }
+
+module "security_groups" {
+  source = "../../modules/security_group"
+
+  project_name = var.common.project_name
+  environment  = var.common.environment
+  owner        = var.common.owner
+
+  vpc_id              = module.vpc.vpc_id
+  vpc_cidr            = var.vpc.vpc_cidr
+  allowed_cidr_blocks = var.security_groups.allowed_cidr_blocks
+  enable_ssh_access   = var.security_groups.enable_ssh_access
+}
