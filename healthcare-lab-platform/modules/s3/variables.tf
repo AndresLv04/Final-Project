@@ -34,7 +34,19 @@ variable "days_until_transition" {
 variable "days_to_glacier" {
   description = "Número de días para mantener los objetos en almacenamiento Glacier"
   type = number
-  default = 0
+  default = 180
+}
+
+variable "days_to_expire" {
+  description = "Días para eliminar objetos (0 = nunca)"
+  type        = number
+  default     = 0 
+}
+
+variable "days_to_transition_ia" {
+  description = "Días para mover a Infrequent Access"
+  type        = number
+  default     = 90
 }
 
 variable "enable_encryption" {
