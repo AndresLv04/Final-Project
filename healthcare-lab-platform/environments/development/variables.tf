@@ -45,3 +45,13 @@ variable "s3" {
     enable_access_logging   = bool
   })
 }
+
+variable "sqs" {
+  description = "SQS configuration"
+  type = object({
+    sqs_visibility_timeout = number
+    sqs_max_receive_count  = number
+    enable_sqs_alarms      = bool
+    alarm_email            = string
+  })
+}

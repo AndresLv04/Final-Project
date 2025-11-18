@@ -31,9 +31,18 @@ security_groups = {
 // Configuración de S3
 // S3 configuration
 s3 = {
-  enable_versioning     = true
-  lifecycle_rules_enabled     = true
-  days_to_transition_ia = 90
-  days_to_glacier     = 180
-  enable_access_logging = true
+  enable_versioning       = true
+  lifecycle_rules_enabled = true
+  days_to_transition_ia   = 90
+  days_to_glacier         = 180
+  enable_access_logging   = true
+}
+
+// Configuración de SQS
+// SQS configuration
+sqs = {
+  sqs_visibility_timeout = 300
+  sqs_max_receive_count  = 3
+  enable_sqs_alarms      = true
+  alarm_email            = "andreslopezv04@gmail.com"
 }

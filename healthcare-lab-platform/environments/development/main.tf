@@ -60,3 +60,26 @@ module "s3" {
   block_public_access   = true
   enable_access_logging = var.s3.enable_access_logging
 }
+
+//Despliegue del módulo SQS
+//Deployment of the SQS module
+module "sqs" {
+  source = "../../modules/sqs"
+
+  project_name = var.common.project_name
+  environment  = var.common.environment
+  owner        = var.common.owner
+
+  //SQS Settings
+  visibility_timeout_seconds = var.sqs.sqs_visibility_timeout
+  max_receive_count          = var.sqs.sqs_max_receive_count
+  receive_wait_time_seconds  = 20
+
+  //Encryption Settings
+  enable_encryption = true
+  kms_key_id        = null
+
+  //CloudWatch Alarms Settings
+  enable_cloudwatch_alarms = var.sqs.enable_sqs_alarms
+  alarm_email              = var.sqs.alarm_email
+}

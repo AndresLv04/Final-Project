@@ -51,3 +51,29 @@ output "bucket_prefixes" {
   description = "Prefijos del bucket"
   value       = module.s3.bucket_prefixes
 }
+
+// SQS Outputs
+output "sqs_main_queue_id" {
+  description = "ID de la cola principal de SQS"
+  value       = module.sqs.queue_id
+}
+output "sqs_dlq_id" {
+  description = "ID de la Dead Letter Queue de SQS"
+  value       = module.sqs.dlq_id
+}
+output "queue_url" {
+  description = "URL de la cola principal"
+  value       = module.sqs.queue_url
+}
+output "queue_arn" {
+  description = "ARN de la cola principal"
+  value       = module.sqs.queue_arn
+}
+output "dlq_url" {
+  description = "URL del Dead Letter Queue"
+  value       = module.sqs.dlq_url
+}
+output "alarm_topic_arn" {
+  description = "ARN del SNS topic para alarmas"
+  value       = module.sqs.alarm_topic_arn
+}
