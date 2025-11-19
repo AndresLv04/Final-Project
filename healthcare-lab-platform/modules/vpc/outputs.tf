@@ -33,6 +33,14 @@ output "private_subnet_cidr" {
   value       = aws_subnet.private.cidr_block
 }
 
+output "private_subnet_secondary_id" {
+  description = "ID of the second private subnet"
+  value       = aws_subnet.private_secondary.id
+}
+output "private_subnet_secondary_cidr" {
+  description = "CIDR block of the second private subnet"
+  value       = aws_subnet.private_secondary.cidr_block
+}
 output "internet_gateway_id" {
   description = "ID of the Internet Gateway"
   value       = aws_internet_gateway.main.id

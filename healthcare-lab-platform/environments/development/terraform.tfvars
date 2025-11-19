@@ -15,7 +15,9 @@ vpc = {
   vpc_cidr             = "10.0.0.0/16"
   public_subnet_cidrs  = "10.0.1.0/24"
   private_subnet_cidrs = "10.0.2.0/24"
+  private_subnet_cidr_secondary = "10.0.3.0/24"
   availability_zone    = "us-east-1a"
+  availability_zone_secondary = "us-east-1b"
   enable_dns_hostnames = true
   enable_dns_support   = true
   enable_nat_gateway   = true
@@ -45,4 +47,13 @@ sqs = {
   sqs_max_receive_count  = 3
   enable_sqs_alarms      = true
   alarm_email            = "andreslopezv04@gmail.com"
+}
+
+rds = {
+  db_password = "administrador123!"
+  db_instance_class = "db.t3.micro"
+  db_multi_az = false
+  alarm_sns_topic_arn = ""
+  engine_version = "16.6"
+  parameter_family = "postgres16"
 }

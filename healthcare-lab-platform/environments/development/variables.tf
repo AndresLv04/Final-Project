@@ -19,8 +19,10 @@ variable "vpc" {
   type = object({
     vpc_cidr             = string
     availability_zone    = string
+    availability_zone_secondary = string
     public_subnet_cidrs  = string
     private_subnet_cidrs = string
+    private_subnet_cidr_secondary = string
     enable_dns_hostnames = bool
     enable_dns_support   = bool
     enable_nat_gateway   = bool
@@ -53,5 +55,17 @@ variable "sqs" {
     sqs_max_receive_count  = number
     enable_sqs_alarms      = bool
     alarm_email            = string
+  })
+}
+
+variable "rds" {
+  description = "RDS configuration"
+  type = object({
+    db_instance_class = string
+    db_password = string
+    db_multi_az = bool
+    alarm_sns_topic_arn = string
+    engine_version = string
+    parameter_family = string
   })
 }

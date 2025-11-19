@@ -89,6 +89,31 @@ resource "aws_subnet" "private" {
 
 }
 
+//Segunda subred privada para RDS
+//Second private subnet for RDS
+resource "aws_subnet" "private_secondary" {
+  vpc_id = aws_vpc.main.id
+  cidr_block = var.private_subnet_cidr_secondary
+  availability_zone = var.availability_zone_secondary
+
+  map_public_ip_on_launch = false
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-private-subnet-${var.availability_zone_secondary}"
+      type = "Private"
+      Tier = "Private"
+    }
+  )
+
+}
+//Asociación de la segunda subred privada a la tabla de ruteo privada
+//Association of the second private subnet to the private route table
+resource "aws_route_table_association" "private_secondary" {
+  subnet_id      = aws_subnet.private_secondary.id
+  route_table_id = aws_route_table.private.id
+}
 
 
 // NAT Gateway en la subred pública

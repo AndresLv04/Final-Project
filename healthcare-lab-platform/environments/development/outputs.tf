@@ -16,6 +16,11 @@ output "private_subnet_id" {
   description = "ID of private subnet"
   value       = module.vpc.private_subnet_id
 }
+output "private_subnet_secondary_id" {
+  description = "ID of second private subnet"
+  value       = module.vpc.private_subnet_secondary_id
+}
+
 output "nat_gateway_ip" {
   description = "Public IP of NAT Gateway"
   value       = module.vpc.nat_gateway_public_ip
@@ -76,4 +81,27 @@ output "dlq_url" {
 output "alarm_topic_arn" {
   description = "ARN del SNS topic para alarmas"
   value       = module.sqs.alarm_topic_arn
+}
+
+// RDS Outputs
+# RDS Outputs
+output "db_endpoint" {
+  description = "Endpoint de la base de datos"
+  value       = module.rds.db_instance_endpoint
+}
+
+output "db_address" {
+  description = "Hostname de la base de datos"
+  value       = module.rds.db_instance_address
+}
+
+output "db_name" {
+  description = "Nombre de la base de datos"
+  value       = module.rds.db_name
+}
+
+output "db_connection_string" {
+  description = "String de conexión"
+  value       = module.rds.connection_string
+  sensitive   = true
 }

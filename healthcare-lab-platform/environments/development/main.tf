@@ -18,8 +18,10 @@ module "vpc" {
 
   vpc_cidr             = var.vpc.vpc_cidr
   availability_zone    = var.vpc.availability_zone
+  availability_zone_secondary = var.vpc.availability_zone_secondary
   public_subnet_cidr   = var.vpc.public_subnet_cidrs
   private_subnet_cidr  = var.vpc.private_subnet_cidrs
+  private_subnet_cidr_secondary = var.vpc.private_subnet_cidr_secondary
   enable_dns_hostnames = var.vpc.enable_dns_hostnames
   enable_dns_support   = var.vpc.enable_dns_support
   enable_nat_gateway   = var.vpc.enable_nat_gateway
@@ -82,4 +84,57 @@ module "sqs" {
   //CloudWatch Alarms Settings
   enable_cloudwatch_alarms = var.sqs.enable_sqs_alarms
   alarm_email              = var.sqs.alarm_email
+}
+
+//Despliegue del módulo RDS
+//Deployment of the RDS module
+module "rds" {
+  source = "../../modules/rds"
+
+  project_name = var.common.project_name
+  environment  = var.common.environment
+  owner        = var.common.owner
+
+//Network Settings
+  vpc_id               = module.vpc.vpc_id
+  subnet_ids         = [
+    module.vpc.private_subnet_id,
+    module.vpc.private_subnet_secondary_id
+  ]
+  security_group_ids   = [module.security_groups.all_security_group_ids.rds_sg_id]
+
+//Database Settings
+  db_name = "healthcare_lab_db"
+  db_username = "dbadmin"
+  db_password = var.rds.db_password
+
+  engine_version = var.rds.engine_version
+  parameter_family = var.rds.parameter_family
+
+// Intance Settings
+  db_instance_class = var.rds.db_instance_class
+  allocated_storage = 20
+  max_allocated_storage = 100
+  storage_type = "gp3"
+  storage_encrypted = true
+
+//Backup Settings
+  backup_retention_period = 7
+  backup_window = "03:00-04:00"
+  maintenance_window = "sun:04:00-sun:05:00"
+
+// High Availability Settings
+  db_multi_az = var.rds.db_multi_az
+
+// Monitoring Settings
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
+  performance_insights_enabled          = true
+
+//Protection Settings
+  deletion_protection = false
+  skip_final_snapshot = true
+
+//Alarm Settings
+  enable_cloudwatch_alarms = true
+  alarm_sns_topic_arn = module.sqs.alarm_topic_arn
 }

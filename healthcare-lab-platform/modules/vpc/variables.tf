@@ -81,3 +81,17 @@ variable "enable_dns_support" {
   type = bool
   default = true
 }
+
+// Segunda zona de disponibilidad (para la segunda subnet privada / RDS)
+// Second AZ for the second private subnet (RDS)
+variable "availability_zone_secondary" {
+  description = "Segunda AZ para RDS"
+  type        = string
+}
+
+// CIDR de la segunda subnet privada
+// CIDR block for the second private subnet
+variable "private_subnet_cidr_secondary" {
+  description = "CIDR block para la segunda subnet privada"
+  type        = string
+}
