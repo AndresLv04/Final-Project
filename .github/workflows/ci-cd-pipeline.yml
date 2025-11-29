@@ -1,0 +1,411 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  AWS_REGION: us-east-1
+  TERRAFORM_VERSION: 1.6.0
+  PYTHON_VERSION: 3.11
+
+jobs:
+  # ===================================
+  # JOB 1: Validate Code
+  # ===================================
+  validate:
+    name: Validate Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov flake8 black
+      
+      - name: Run Python linting
+        run: |
+          # Check code style
+          flake8 services/ lambda/ --max-line-length=120 --exclude=venv,__pycache__
+          
+          # Check formatting
+          black --check services/ lambda/
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Terraform Format Check
+        run: |
+          terraform fmt -check -recursive
+      
+      - name: Terraform Validate
+        run: |
+          cd development
+          terraform init -backend=false
+          terraform validate
+
+  # ===================================
+  # JOB 2: Run Tests
+  # ===================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          pip install -r services/processor/requirements.txt
+          pip install -r services/portal/requirements.txt
+          pip install pytest pytest-cov
+      
+      - name: Run Unit Tests
+        run: |
+          pytest tests/unit/ -v --cov=services --cov=lambda --cov-report=xml
+      
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  # ===================================
+  # JOB 3: Terraform Plan (PR only)
+  # ===================================
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: [validate, test]
+    if: github.event_name == 'pull_request'
+    
+    permissions:
+      pull-requests: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Terraform Init
+        run: |
+          cd development
+          terraform init
+      
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd development
+          terraform plan -no-color -out=tfplan
+        continue-on-error: true
+      
+      - name: Comment PR with Plan
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Plan 📖
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  # ===================================
+  # JOB 4: Build Docker Images
+  # ===================================
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    
+    strategy:
+      matrix:
+        service: [processor, portal]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Build, tag, and push image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd services/${{ matrix.service }}
+          
+          # Build image
+          docker build -t $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:$IMAGE_TAG \
+                     $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:latest
+          
+          # Push image
+          docker push $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:latest
+      
+      - name: Output image URI
+        run: |
+          echo "Image pushed: ${{ steps.login-ecr.outputs.registry }}/healthcare-lab-dev-${{ matrix.service }}:${{ github.sha }}"
+
+  # ===================================
+  # JOB 5: Package Lambda Functions
+  # ===================================
+  package-lambda:
+    name: Package Lambda Functions
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    
+    strategy:
+      matrix:
+        function: [ingest, notify, pdf]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Package Lambda
+        run: |
+          cd lambda/${{ matrix.function }}
+          
+          # Install dependencies
+          pip install -r requirements.txt -t package/
+          
+          # Copy function code
+          cp *.py package/
+          
+          # Create zip
+          cd package
+          zip -r ../function.zip .
+          cd ..
+          
+          # Verify zip
+          ls -lh function.zip
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-${{ matrix.function }}
+          path: lambda/${{ matrix.function }}/function.zip
+          retention-days: 7
+
+  # ===================================
+  # JOB 6: Deploy to Staging
+  # ===================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-docker, package-lambda]
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.healthcarelab.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Download Lambda artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: lambda-artifacts
+      
+      - name: Deploy Lambda Functions
+        run: |
+          for function in ingest notify pdf; do
+            aws lambda update-function-code \
+              --function-name healthcare-lab-dev-${function} \
+              --zip-file fileb://lambda-artifacts/lambda-${function}/function.zip
+          done
+      
+      - name: Terraform Init
+        run: |
+          cd development
+          terraform init
+      
+      - name: Terraform Apply
+        run: |
+          cd development
+          terraform apply -auto-approve
+      
+      - name: Update ECS Services
+        run: |
+          # Force new deployment of ECS services
+          aws ecs update-service \
+            --cluster healthcare-lab-dev-cluster \
+            --service healthcare-lab-dev-worker \
+            --force-new-deployment
+          
+          aws ecs update-service \
+            --cluster healthcare-lab-dev-cluster \
+            --service healthcare-lab-dev-portal \
+            --force-new-deployment
+      
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster healthcare-lab-dev-cluster \
+            --services healthcare-lab-dev-worker healthcare-lab-dev-portal
+
+  # ===================================
+  # JOB 7: Deploy to Production
+  # ===================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-docker, package-lambda]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://healthcarelab.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Terraform Plan
+        run: |
+          cd production
+          terraform init
+          terraform plan -out=tfplan
+      
+      - name: Terraform Apply
+        run: |
+          cd production
+          terraform apply tfplan
+      
+      - name: Update ECS Services
+        run: |
+          aws ecs update-service \
+            --cluster healthcare-lab-prod-cluster \
+            --service healthcare-lab-prod-worker \
+            --force-new-deployment
+          
+          aws ecs update-service \
+            --cluster healthcare-lab-prod-cluster \
+            --service healthcare-lab-prod-portal \
+            --force-new-deployment
+
+  # ===================================
+  # JOB 8: Notify
+  # ===================================
+  notify:
+    name: Notify Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    
+    steps:
+      - name: Send Slack notification
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: |
+            Deployment Status: ${{ job.status }}
+            Branch: ${{ github.ref }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

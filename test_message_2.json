@@ -1,0 +1,54 @@
+{
+  "patient_id": "P234567",
+  "lab_id": "LAB001",
+  "lab_name": "Quest Diagnostics",
+  "test_type": "complete_blood_count",
+  "test_date": "2025-11-28T17:41:52.697910",
+  "physician": {
+    "name": "Dr. Michael Chen",
+    "npi": "2345678901"
+  },
+  "results": [
+    {
+      "test_code": "WBC",
+      "test_name": "White Blood Cell Count",
+      "value": 10.7,
+      "unit": "10^3/uL",
+      "reference_range": "4.5-11.0",
+      "is_abnormal": false
+    },
+    {
+      "test_code": "RBC",
+      "test_name": "Red Blood Cell Count",
+      "value": 4.6,
+      "unit": "10^6/uL",
+      "reference_range": "4.5-5.5",
+      "is_abnormal": false
+    },
+    {
+      "test_code": "HGB",
+      "test_name": "Hemoglobin",
+      "value": 16.5,
+      "unit": "g/dL",
+      "reference_range": "13.0-17.0",
+      "is_abnormal": false
+    },
+    {
+      "test_code": "HCT",
+      "test_name": "Hematocrit",
+      "value": 31.7,
+      "unit": "%",
+      "reference_range": "39.0-49.0",
+      "is_abnormal": true
+    },
+    {
+      "test_code": "PLT",
+      "test_name": "Platelet Count",
+      "value": 309.9,
+      "unit": "10^3/uL",
+      "reference_range": "150-400",
+      "is_abnormal": false
+    }
+  ],
+  "notes": "Patient reported taking medications as prescribed."
+}

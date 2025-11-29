@@ -1,0 +1,3 @@
+# Dependencies for hl7_adapter
+# (por ahora no usamos librerías externas)
+boto3
