@@ -14,6 +14,7 @@ INGEST_FUNCTION_NAME = os.environ["INGEST_FUNCTION_NAME"]
 LAB_ID_DEFAULT = os.environ.get("LAB_ID", "LAB002")
 LAB_NAME_DEFAULT = os.environ.get("LAB_NAME", "LabCorp")
 
+
 def lambda_handler(event, context):
     """
     Adapter HL7 -> JSON canónico para Lambda Ingest.
@@ -37,15 +38,19 @@ def lambda_handler(event, context):
         Payload=json.dumps(normalized).encode("utf-8"),
     )
 
-    logger.info(f"Invoked ingest function: {INGEST_FUNCTION_NAME}, response: {response}")
+    logger.info(
+        f"Invoked ingest function: {INGEST_FUNCTION_NAME}, response: {response}"
+    )
 
     return {
         "statusCode": 202,
-        "body": json.dumps({
-            "status": "accepted",
-            "message": "HL7 received, normalized and sent to ingest",
-            "ingest_function": INGEST_FUNCTION_NAME
-        })
+        "body": json.dumps(
+            {
+                "status": "accepted",
+                "message": "HL7 received, normalized and sent to ingest",
+                "ingest_function": INGEST_FUNCTION_NAME,
+            }
+        ),
     }
 
 
@@ -89,9 +94,9 @@ def parse_hl7_to_json(hl7_text: str) -> Dict[str, Any]:
 
     # --- MSH ---
     msh = segments.get("MSH", [])
-    sending_app  = msh[2] if len(msh) > 2 else ""
-    sending_fac  = msh[3] if len(msh) > 3 else LAB_ID_DEFAULT
-    ts_str       = msh[6] if len(msh) > 6 else ""  # 20240115103000
+    sending_app = msh[2] if len(msh) > 2 else ""
+    sending_fac = msh[3] if len(msh) > 3 else LAB_ID_DEFAULT
+    ts_str = msh[6] if len(msh) > 6 else ""  # 20240115103000
 
     test_datetime_iso = None
     if ts_str:
@@ -152,15 +157,17 @@ def parse_hl7_to_json(hl7_text: str) -> Dict[str, Any]:
         except (ValueError, TypeError):
             numeric_value = None
 
-        results.append({
-            "test_code": test_code,
-            "test_name": test_name,
-            "value": numeric_value,
-            "unit": unit,
-            "reference_range": ref_range,
-            "is_abnormal": is_abnormal,
-            "severity": severity,
-        })
+        results.append(
+            {
+                "test_code": test_code,
+                "test_name": test_name,
+                "value": numeric_value,
+                "unit": unit,
+                "reference_range": ref_range,
+                "is_abnormal": is_abnormal,
+                "severity": severity,
+            }
+        )
 
     normalized: Dict[str, Any] = {
         "patient_id": patient_id,

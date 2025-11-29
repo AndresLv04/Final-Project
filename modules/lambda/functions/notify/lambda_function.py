@@ -31,7 +31,7 @@ DB_SECRET_ARN = os.environ["DB_SECRET_ARN"]  # ARN del secret en Secrets Manager
 
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "noreply@example.com")
 SES_TEMPLATE_NAME = os.environ.get("SES_TEMPLATE_NAME")  # opcional
-SES_CONFIG_SET = os.environ.get("SES_CONFIG_SET")        # opcional
+SES_CONFIG_SET = os.environ.get("SES_CONFIG_SET")  # opcional
 
 PORTAL_URL = os.environ.get("PORTAL_URL", "https://portal.example.com")
 
@@ -83,18 +83,14 @@ def lambda_handler(event, context):
                 result = process_notification(record)
                 results.append(result)
             except Exception as e:
-                logger.error(
-                    f"Error procesando record: {str(e)}", exc_info=True
-                )
+                logger.error(f"Error procesando record: {str(e)}", exc_info=True)
                 results.append({"success": False, "error": str(e)})
 
         logger.info(f"Procesados {len(results)} registros")
 
         return {
             "statusCode": 200,
-            "body": json.dumps(
-                {"processed": len(results), "results": results}
-            ),
+            "body": json.dumps({"processed": len(results), "results": results}),
         }
 
     except Exception as e:
@@ -266,7 +262,9 @@ def send_email_with_template(
 
     template_data = {
         "first_name": patient_info["first_name"],
-        "test_type": result_info.get("test_type", "Lab Result").replace("_", " ").title(),
+        "test_type": result_info.get("test_type", "Lab Result")
+        .replace("_", " ")
+        .title(),
         "test_date": result_info.get("test_date", ""),
         "lab_name": result_info.get("lab_name", "N/A"),
         "result_id": result_info["result_id"],
@@ -286,9 +284,7 @@ def send_email_with_template(
 
         response = ses_client.send_templated_email(**kwargs)
 
-        logger.info(
-            f"Templated email sent. MessageId: {response['MessageId']}"
-        )
+        logger.info(f"Templated email sent. MessageId: {response['MessageId']}")
         return response
 
     except Exception as e:
@@ -385,9 +381,7 @@ Healthcare Lab Platform
             },
         )
 
-        logger.info(
-            f"Email sent successfully. MessageId: {response['MessageId']}"
-        )
+        logger.info(f"Email sent successfully. MessageId: {response['MessageId']}")
         return response
 
     except Exception as e:
@@ -398,9 +392,7 @@ Healthcare Lab Platform
 # --------------------------------------------------
 # AUDIT LOG (OPCIONAL)
 # --------------------------------------------------
-def log_notification(
-    result_id: str, patient_id: str, email_result: Dict[str, Any]
-):
+def log_notification(result_id: str, patient_id: str, email_result: Dict[str, Any]):
     """Registra la notificación en la base de datos (opcional)"""
     try:
         conn = get_db_connection()

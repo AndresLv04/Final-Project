@@ -1,52 +1,57 @@
-
 #!/usr/bin/env python3
 # ========================================
 # FILE: services/portal/app.py
 # Healthcare Lab Results Portal (Paciente)
 # ========================================
 
-from flask import Flask, render_template_string, jsonify, request, redirect, session, url_for
-from flask import redirect, url_for, current_app
+from flask import (
+    Flask,
+    render_template_string,
+    jsonify,
+    request,
+    redirect,
+    session,
+    url_for,
+    current_app,
+)
 from urllib.parse import urlencode
 import psycopg2
 import os
 import json
 import boto3
 import requests
-from datetime import datetime
 from functools import wraps
 from jose import jwt
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-change-in-production')
+app.secret_key = os.environ.get(
+    "FLASK_SECRET_KEY", "your-secret-key-change-in-production"
+)
 
 # Environment variables - Database
-DB_HOST = os.environ.get('DB_HOST')
-DB_PORT = os.environ.get('DB_PORT', '5432')
-DB_NAME = os.environ.get('DB_NAME')
-DB_USER = os.environ.get('DB_USER')
-DB_PASSWORD = os.environ.get('DB_PASSWORD')
+DB_HOST = os.environ.get("DB_HOST")
+DB_PORT = os.environ.get("DB_PORT", "5432")
+DB_NAME = os.environ.get("DB_NAME")
+DB_USER = os.environ.get("DB_USER")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 # Environment variables - Cognito
-COGNITO_DOMAIN = os.environ.get('COGNITO_DOMAIN')
-COGNITO_CLIENT_ID = os.environ.get('COGNITO_CLIENT_ID')
-COGNITO_USER_POOL_ID = os.environ.get('COGNITO_USER_POOL_ID')
-COGNITO_REGION = os.environ.get('COGNITO_REGION', 'us-east-1')
+COGNITO_DOMAIN = os.environ.get("COGNITO_DOMAIN")
+COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID")
+COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID")
+COGNITO_REGION = os.environ.get("COGNITO_REGION", "us-east-1")
 
 # URL pública del portal (la de CloudFront / ALB)
-APP_URL = os.environ.get('APP_URL', 'http://localhost:3000')
+APP_URL = os.environ.get("APP_URL", "http://localhost:3000")
 
 # URL a la que Cognito redirige después del logout
-LOGOUT_URL = os.environ.get('LOGOUT_URL', APP_URL)
+LOGOUT_URL = os.environ.get("LOGOUT_URL", APP_URL)
 
 PDF_LAMBDA_NAME = os.environ.get("PDF_LAMBDA_NAME")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 
 lambda_client = boto3.client("lambda", region_name=AWS_REGION)
-
-
-
 
 
 # ======================================================
@@ -107,10 +112,9 @@ def get_user_name_from_token():
         return "User"
 
 
-# ======================================================
 # TEMPLATES (login, dashboard, result detail)
-# ======================================================
-# --- LOGIN_TEMPLATE (idéntico al que ya tenías) ---
+
+# ---LOGIN_TEMPLATE
 LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -423,7 +427,7 @@ LOGIN_TEMPLATE = """
 </html>
 """
 
-# --- DASHBOARD_TEMPLATE (idéntico al tuyo pero con un pequeño cambio en result_id) ---
+# ---DASHBOARD_TEMPLATE
 DASHBOARD_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -991,7 +995,7 @@ DASHBOARD_TEMPLATE = """
 </html>
 """
 
-# --- RESULT_DETAIL_TEMPLATE (igual que el tuyo, lo reutilizamos mostrando un JSON con test_values) ---
+# ---RESULT_DETAIL_TEMPLATE
 RESULT_DETAIL_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -1301,10 +1305,9 @@ RESULT_DETAIL_TEMPLATE = """
 """
 
 
-# ======================================================
 # ROUTES
 # ======================================================
-@app.route('/login')
+@app.route("/login")
 def login():
     """Show login page"""
     cognito_login_url = (
@@ -1316,10 +1319,10 @@ def login():
     return render_template_string(LOGIN_TEMPLATE, cognito_login_url=cognito_login_url)
 
 
-@app.route('/callback')
+@app.route("/callback")
 def callback():
     """Handle Cognito callback"""
-    code = request.args.get('code')
+    code = request.args.get("code")
 
     if not code:
         return "Error: No authorization code", 400
@@ -1336,15 +1339,14 @@ def callback():
         response = requests.post(token_url, data=data)
         tokens = response.json()
 
-        if 'id_token' in tokens:
-            id_token = tokens['id_token']
-            session['user'] = {'id_token': id_token, 'authenticated': True}
-            return redirect(url_for('index'))
+        if "id_token" in tokens:
+            id_token = tokens["id_token"]
+            session["user"] = {"id_token": id_token, "authenticated": True}
+            return redirect(url_for("index"))
         else:
             return f"Error getting tokens: {tokens}", 400
     except Exception as e:
         return f"Error: {str(e)}", 500
-
 
 
 @app.route("/logout")
@@ -1353,12 +1355,13 @@ def logout():
 
     params = {
         "client_id": COGNITO_CLIENT_ID,
-        "logout_uri": LOGOUT_URL,  # ej: https://d2z9bd17xif50.cloudfront.net
+        "logout_uri": LOGOUT_URL,
     }
 
     # COGNITO_DOMAIN viene SIN protocolo, así que le agregamos https://
     url = f"https://{COGNITO_DOMAIN}/logout?{urlencode(params)}"
     return redirect(url)
+
 
 @app.route("/")
 @login_required
@@ -1403,7 +1406,7 @@ def index():
 
         total_patients = 1 if total_results > 0 else 0
 
-        # Últimos resultados de este paciente
+        # Ultimos resultados de este paciente
         cursor.execute(
             """
             SELECT
@@ -1557,6 +1560,7 @@ def result_detail(result_id):
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>", 500
 
+
 @app.route("/results/<int:result_id>/download")
 @login_required
 def result_download(result_id):
@@ -1632,8 +1636,9 @@ def result_download(result_id):
         current_app.logger.exception("Error generating/downloading PDF")
         return (f"Unexpected error generating PDF: {str(e)}", 500)
 
+
 # ======================================================
 # MAIN
 # ======================================================
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)

@@ -25,8 +25,7 @@ logger.setLevel(logging.INFO)
 # CLIENTES AWS
 # --------------------------------------------------
 s3_client = boto3.client(
-    "s3",
-    config=Config(signature_version="s3v4")  # Forzar SigV4 para presigned URLs
+    "s3", config=Config(signature_version="s3v4")  # Forzar SigV4 para presigned URLs
 )
 secrets_client = boto3.client("secretsmanager")
 
@@ -285,9 +284,11 @@ def generate_pdf(data: Dict[str, Any]) -> BytesIO:
         ["Patient ID:", data["patient_id"]],
         [
             "Date of Birth:",
-            data["date_of_birth"].strftime("%Y-%m-%d")
-            if data["date_of_birth"]
-            else "N/A",
+            (
+                data["date_of_birth"].strftime("%Y-%m-%d")
+                if data["date_of_birth"]
+                else "N/A"
+            ),
         ],
         ["Report Generated:", datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")],
     ]
@@ -320,14 +321,15 @@ def generate_pdf(data: Dict[str, Any]) -> BytesIO:
         ["Test Type:", data["test_type"].replace("_", " ").title()],
         [
             "Test Date:",
-            data["test_date"].strftime("%Y-%m-%d %H:%M")
-            if data["test_date"]
-            else "N/A",
+            (
+                data["test_date"].strftime("%Y-%m-%d %H:%M")
+                if data["test_date"]
+                else "N/A"
+            ),
         ],
         ["Physician:", data.get("physician_name", "N/A")],
         ["NPI:", data.get("physician_npi", "N/A")],
     ]
-
 
     test_info_table = Table(test_info_data, colWidths=[2 * inch, 4 * inch])
     test_info_table.setStyle(
@@ -392,7 +394,12 @@ def generate_pdf(data: Dict[str, Any]) -> BytesIO:
         ("TOPPADDING", (0, 1), (-1, -1), 8),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
         # Alternar colores de fila
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
+        (
+            "ROWBACKGROUNDS",
+            (0, 1),
+            (-1, -1),
+            [colors.white, colors.HexColor("#f8f9fa")],
+        ),
     ]
 
     # Resaltar valores anormales
