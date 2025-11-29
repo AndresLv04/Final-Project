@@ -159,7 +159,7 @@ def get_result_data(result_id: str) -> Dict[str, Any]:
 
         # Query principal
         query = """
-            SELECT 
+            SELECT
                 lr.result_id,
                 lr.patient_id,
                 p.first_name,
@@ -188,7 +188,7 @@ def get_result_data(result_id: str) -> Dict[str, Any]:
 
         # Query para obtener valores de tests
         values_query = """
-            SELECT 
+            SELECT
                 test_code,
                 test_name,
                 value,
@@ -439,8 +439,8 @@ def generate_pdf(data: Dict[str, Any]) -> BytesIO:
     )
 
     disclaimer_text = """
-    <b>Important Notice:</b> These results have been reviewed and released by your healthcare provider. 
-    If you have any questions or concerns about your results, please contact your physician. 
+    <b>Important Notice:</b> These results have been reviewed and released by your healthcare provider.
+    If you have any questions or concerns about your results, please contact your physician.
     This report is confidential and intended only for the patient named above.
     """
 
