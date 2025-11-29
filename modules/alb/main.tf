@@ -6,10 +6,10 @@ locals {
     Owner       = var.owner
     ManagedBy   = "Terraform"
   }
-  
+
   cognito_name = "${var.project_name}-${var.environment}"
 
-  portal_host = var.domain_name != "" ? var.domain_name : aws_lb.main.dns_name
+  portal_host   = var.domain_name != "" ? var.domain_name : aws_lb.main.dns_name
   portal_scheme = var.certificate_arn != "" ? "https" : "http"
 }
 
@@ -27,7 +27,7 @@ resource "aws_lb" "main" {
   enable_deletion_protection       = var.enable_deletion_protection
   enable_cross_zone_load_balancing = true
   enable_http2                     = true
-  enable_waf_fail_open            = false
+  enable_waf_fail_open             = false
 
   idle_timeout = var.idle_timeout
 
@@ -49,7 +49,7 @@ resource "aws_lb_target_group" "portal" {
   port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
-  target_type = "ip"  # Required for Fargate
+  target_type = "ip" # Required for Fargate
 
   # Health check configuration
   health_check {
@@ -69,7 +69,7 @@ resource "aws_lb_target_group" "portal" {
   # Stickiness (optional - for session persistence)
   stickiness {
     type            = "lb_cookie"
-    cookie_duration = 86400  # 24 hours
+    cookie_duration = 86400 # 24 hours
     enabled         = var.enable_stickiness
   }
 

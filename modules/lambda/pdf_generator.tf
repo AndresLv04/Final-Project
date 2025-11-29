@@ -10,12 +10,12 @@ data "archive_file" "lambda_pdf" {
 resource "aws_lambda_function" "pdf_generator" {
   filename         = data.archive_file.lambda_pdf.output_path
   function_name    = "${local.lambda_prefix}-pdf-generator"
-  role            = aws_iam_role.lambda_execution.arn
-  handler         = "lambda_function.lambda_handler"
+  role             = aws_iam_role.lambda_execution.arn
+  handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.lambda_pdf.output_base64sha256
-  runtime         = var.lambda_runtime
-  timeout         = 300  # 5 minutos (generar PDF puede tardar)
-  memory_size     = 1024  # 1 GB (ReportLab necesita más memoria)
+  runtime          = var.lambda_runtime
+  timeout          = 300  # 5 minutos (generar PDF puede tardar)
+  memory_size      = 1024 # 1 GB (ReportLab necesita más memoria)
 
   layers = [aws_lambda_layer_version.psycopg2.arn]
 

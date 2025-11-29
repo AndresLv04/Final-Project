@@ -32,8 +32,8 @@ resource "aws_lambda_function" "hl7_adapter" {
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.lambda_prefix}-hl7-adapter"
-      Type = "Adapter"
+      Name   = "${local.lambda_prefix}-hl7-adapter"
+      Type   = "Adapter"
       Format = "HL7"
     }
   )

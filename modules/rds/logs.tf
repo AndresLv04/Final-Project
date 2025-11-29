@@ -35,13 +35,13 @@ resource "aws_cloudwatch_metric_alarm" "cpu" {
   alarm_name          = "${local.db_identifier}-high-cpu"
   alarm_description   = "RDS CPU utilization is too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 2
-  threshold          = 80  # 80% CPU
-  
+  threshold          = 80 # 80% CPU
+
   metric_name = "CPUUtilization"
   namespace   = "AWS/RDS"
-  period      = 300  # 5 minutos
+  period      = 300 # 5 minutos
   statistic   = "Average"
 
   dimensions = {
@@ -60,10 +60,10 @@ resource "aws_cloudwatch_metric_alarm" "storage" {
   alarm_name          = "${local.db_identifier}-low-storage"
   alarm_description   = "RDS free storage is running low"
   comparison_operator = "LessThanThreshold"
-  
+
   evaluation_periods = 1
-  threshold          = 10  # 10% libre
-  
+  threshold          = 10 # 10% libre
+
   metric_name = "FreeStorageSpace"
   namespace   = "AWS/RDS"
   period      = 300
@@ -85,10 +85,10 @@ resource "aws_cloudwatch_metric_alarm" "memory" {
   alarm_name          = "${local.db_identifier}-low-memory"
   alarm_description   = "RDS freeable memory is too low"
   comparison_operator = "LessThanThreshold"
-  
+
   evaluation_periods = 2
-  threshold          = 256000000  # 256 MB en bytes
-  
+  threshold          = 256000000 # 256 MB en bytes
+
   metric_name = "FreeableMemory"
   namespace   = "AWS/RDS"
   period      = 300
@@ -110,10 +110,10 @@ resource "aws_cloudwatch_metric_alarm" "connections" {
   alarm_name          = "${local.db_identifier}-high-connections"
   alarm_description   = "RDS database connections are too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 2
-  threshold          = 80  
-  
+  threshold          = 80
+
   metric_name = "DatabaseConnections"
   namespace   = "AWS/RDS"
   period      = 300
@@ -135,10 +135,10 @@ resource "aws_cloudwatch_metric_alarm" "read_latency" {
   alarm_name          = "${local.db_identifier}-high-read-latency"
   alarm_description   = "RDS read latency is too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 2
-  threshold          = 0.1 
-  
+  threshold          = 0.1
+
   metric_name = "ReadLatency"
   namespace   = "AWS/RDS"
   period      = 300
@@ -160,10 +160,10 @@ resource "aws_cloudwatch_metric_alarm" "write_latency" {
   alarm_name          = "${local.db_identifier}-high-write-latency"
   alarm_description   = "RDS write latency is too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 2
-  threshold          = 0.1 
-  
+  threshold          = 0.1
+
   metric_name = "WriteLatency"
   namespace   = "AWS/RDS"
   period      = 300

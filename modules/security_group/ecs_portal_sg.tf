@@ -15,7 +15,7 @@ resource "aws_security_group" "ecs_portal" {
     from_port       = 5000
     to_port         = 5000
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]   
+    security_groups = [aws_security_group.alb.id]
   }
 
   // REGLAS DE SALIDA

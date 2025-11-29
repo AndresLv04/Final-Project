@@ -51,7 +51,7 @@ output "parameter_group_name" {
 # Monitoring
 output "monitoring_role_arn" {
   description = "ARN del IAM role de monitoring"
-  value = aws_iam_role.rds_monitoring.arn
+  value       = aws_iam_role.rds_monitoring.arn
 }
 
 # Connection String

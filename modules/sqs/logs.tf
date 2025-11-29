@@ -7,16 +7,16 @@ resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
   alarm_name          = "${local.queue_name}-dlq-messages"
   alarm_description   = "Alert when messages appear in DLQ"
   comparison_operator = "GreaterThanThreshold"
-  
+
   # Configuración del threshold
-  evaluation_periods  = 1
-  threshold           = 0  # Cualquier mensaje en DLQ es alerta
-  treat_missing_data  = "notBreaching"
+  evaluation_periods = 1
+  threshold          = 0 # Cualquier mensaje en DLQ es alerta
+  treat_missing_data = "notBreaching"
 
   # Métrica
   metric_name = "ApproximateNumberOfMessagesVisible"
   namespace   = "AWS/SQS"
-  period      = 300  # 5 minutos
+  period      = 300 # 5 minutos
   statistic   = "Average"
 
   dimensions = {
@@ -36,9 +36,9 @@ resource "aws_cloudwatch_metric_alarm" "queue_depth" {
   alarm_name          = "${local.queue_name}-high-depth"
   alarm_description   = "Alert when queue has too many messages"
   comparison_operator = "GreaterThanThreshold"
-  
-  evaluation_periods = 2  # 2 periodos consecutivos
-  threshold          = 100  # 100 mensajes
+
+  evaluation_periods = 2   # 2 periodos consecutivos
+  threshold          = 100 # 100 mensajes
   treat_missing_data = "notBreaching"
 
   metric_name = "ApproximateNumberOfMessagesVisible"
@@ -62,9 +62,9 @@ resource "aws_cloudwatch_metric_alarm" "message_age" {
   alarm_name          = "${local.queue_name}-old-messages"
   alarm_description   = "Alert when messages are too old"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 1
-  threshold          = 600  # 10 minutos
+  threshold          = 600 # 10 minutos
   treat_missing_data = "notBreaching"
 
   metric_name = "ApproximateAgeOfOldestMessage"

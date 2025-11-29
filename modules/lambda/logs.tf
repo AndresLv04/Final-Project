@@ -49,10 +49,10 @@ resource "aws_cloudwatch_metric_alarm" "lambda_csv_errors" {
   alarm_name          = "${local.lambda_prefix}-csv-errors"
   alarm_description   = "Lambda hl7 errors are too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 1
-  threshold          = 5  # 5 errores
-  
+  threshold          = 5 # 5 errores
+
   metric_name = "Errors"
   namespace   = "AWS/Lambda"
   period      = 300
@@ -71,10 +71,10 @@ resource "aws_cloudwatch_metric_alarm" "lambda_xml_errors" {
   alarm_name          = "${local.lambda_prefix}-xml-errors"
   alarm_description   = "Lambda hl7 errors are too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 1
-  threshold          = 5  # 5 errores
-  
+  threshold          = 5 # 5 errores
+
   metric_name = "Errors"
   namespace   = "AWS/Lambda"
   period      = 300
@@ -94,10 +94,10 @@ resource "aws_cloudwatch_metric_alarm" "lambda_h17_errors" {
   alarm_name          = "${local.lambda_prefix}-hl7-errors"
   alarm_description   = "Lambda hl7 errors are too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 1
-  threshold          = 5  # 5 errores
-  
+  threshold          = 5 # 5 errores
+
   metric_name = "Errors"
   namespace   = "AWS/Lambda"
   period      = 300
@@ -117,10 +117,10 @@ resource "aws_cloudwatch_metric_alarm" "lambda_ingest_errors" {
   alarm_name          = "${local.lambda_prefix}-ingest-errors"
   alarm_description   = "Lambda Ingest errors are too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 1
-  threshold          = 5  # 5 errores
-  
+  threshold          = 5 # 5 errores
+
   metric_name = "Errors"
   namespace   = "AWS/Lambda"
   period      = 300
@@ -140,10 +140,10 @@ resource "aws_cloudwatch_metric_alarm" "lambda_pdf_duration" {
   alarm_name          = "${local.lambda_prefix}-pdf-high-duration"
   alarm_description   = "PDF generation is taking too long"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 2
-  threshold          = 60000  # 60 segundos en milisegundos
-  
+  threshold          = 60000 # 60 segundos en milisegundos
+
   metric_name = "Duration"
   namespace   = "AWS/Lambda"
   period      = 300

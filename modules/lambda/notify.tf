@@ -10,25 +10,25 @@ data "archive_file" "lambda_notify" {
 resource "aws_lambda_function" "notify" {
   filename         = data.archive_file.lambda_notify.output_path
   function_name    = "${local.lambda_prefix}-notify"
-  role            = aws_iam_role.lambda_execution.arn
-  handler         = "lambda_function.lambda_handler"
+  role             = aws_iam_role.lambda_execution.arn
+  handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.lambda_notify.output_base64sha256
-  runtime         = var.lambda_runtime
-  timeout         = var.lambda_timeout
-  memory_size     = var.lambda_memory_size
+  runtime          = var.lambda_runtime
+  timeout          = var.lambda_timeout
+  memory_size      = var.lambda_memory_size
 
   # Layer para psycopg2
   layers = [aws_lambda_layer_version.psycopg2.arn]
 
   environment {
     variables = {
-      DB_SECRET_ARN = aws_secretsmanager_secret.db_credentials.arn
-      SENDER_EMAIL  = var.ses_email_identity
-      PORTAL_URL    = var.portal_url
+      DB_SECRET_ARN     = aws_secretsmanager_secret.db_credentials.arn
+      SENDER_EMAIL      = var.ses_email_identity
+      PORTAL_URL        = var.portal_url
       SES_TEMPLATE_NAME = "${var.project_name}-${var.environment}-result-ready"
       SES_CONFIG_SET    = var.ses_configuration_set
-      ENVIRONMENT   = var.environment
-      LOG_LEVEL     = "INFO"
+      ENVIRONMENT       = var.environment
+      LOG_LEVEL         = "INFO"
     }
   }
 

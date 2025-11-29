@@ -8,10 +8,10 @@ resource "aws_s3_bucket" "data" {
   tags = merge(
     local.common_tags,
     {
-      Name = local.data_bucket_name
-      Purpose = "Healthcare Lab Data"
+      Name       = local.data_bucket_name
+      Purpose    = "Healthcare Lab Data"
       Compliance = "HIPAA"
-      DataType = "PHI"  
+      DataType   = "PHI"
     }
   )
 }
@@ -32,10 +32,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "data" {
   rule {
     apply_server_side_encryption_by_default {
       // Si se proporciona KMS key, usar SSE-KMS, sino SSE-S3
-      sse_algorithm = var.kms_key_id != null ? "aws:kms" : "AES256"
+      sse_algorithm     = var.kms_key_id != null ? "aws:kms" : "AES256"
       kms_master_key_id = var.kms_key_id
     }
-    
+
     // Forzar encriptación en todos los objetos
     bucket_key_enabled = true
   }
@@ -45,9 +45,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "data" {
 resource "aws_s3_bucket_public_access_block" "data" {
   bucket = aws_s3_bucket.data.id
 
-  block_public_acls = var.block_public_access
-  block_public_policy = var.block_public_access
-  ignore_public_acls = var.block_public_access
+  block_public_acls       = var.block_public_access
+  block_public_policy     = var.block_public_access
+  ignore_public_acls      = var.block_public_access
   restrict_public_buckets = var.block_public_access
 }
 
@@ -68,12 +68,12 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
 
     # Transiciones de storage class
     transition {
-      days = var.days_to_transition_ia
+      days          = var.days_to_transition_ia
       storage_class = "STANDARD_IA"
     }
 
     transition {
-      days = var.days_to_glacier
+      days          = var.days_to_glacier
       storage_class = "GLACIER"
     }
 
@@ -100,7 +100,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
       noncurrent_days = 90
     }
   }
-// Regla para archivos procesados
+  // Regla para archivos procesados
   rule {
     id     = "processed-lifecycle"
     status = "Enabled"
@@ -111,17 +111,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
 
     # Datos procesados son más valiosos, mantenemos en STANDARD más tiempo
     transition {
-      days          = var.days_to_transition_ia * 2  # 180 días
+      days          = var.days_to_transition_ia * 2 # 180 días
       storage_class = "STANDARD_IA"
     }
 
     # Versiones antiguas
     noncurrent_version_expiration {
-      noncurrent_days = 180  # Más tiempo que incoming
+      noncurrent_days = 180 # Más tiempo que incoming
     }
   }
-  
-// Regla para reportes PDF
+
+  // Regla para reportes PDF
   rule {
     id     = "reports-lifecycle"
     status = "Enabled"
@@ -133,7 +133,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
     # Los PDFs se mantienen en STANDARD (los pacientes los descargan)
     # Pero movemos a IA después de un tiempo
     transition {
-      days          = 30  # Después de 30 días, poca gente descarga
+      days          = 30 # Después de 30 días, poca gente descarga
       storage_class = "STANDARD_IA"
     }
 
@@ -153,10 +153,10 @@ resource "aws_s3_bucket_policy" "data" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "DenyInsecureTransport"
-        Effect = "Deny"
+        Sid       = "DenyInsecureTransport"
+        Effect    = "Deny"
         Principal = "*"
-        Action = "s3:*"
+        Action    = "s3:*"
         Resource = [
           aws_s3_bucket.data.arn,
           "${aws_s3_bucket.data.arn}/*"
@@ -168,11 +168,11 @@ resource "aws_s3_bucket_policy" "data" {
         }
       },
       {
-        Sid    = "DenyUnencryptedObjectUploads"
-        Effect = "Deny"
+        Sid       = "DenyUnencryptedObjectUploads"
+        Effect    = "Deny"
         Principal = "*"
-        Action = "s3:PutObject"
-        Resource = "${aws_s3_bucket.data.arn}/*"
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.data.arn}/*"
         Condition = {
           StringNotEquals = {
             "s3:x-amz-server-side-encryption" = ["AES256", "aws:kms"]

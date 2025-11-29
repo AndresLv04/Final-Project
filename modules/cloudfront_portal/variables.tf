@@ -20,11 +20,11 @@ variable "origin_path" {
 }
 
 variable "allowed_http_methods" {
-  type        = list(string)
-  default     = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+  type    = list(string)
+  default = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
 }
 
 variable "cached_http_methods" {
-  type        = list(string)
-  default     = ["GET", "HEAD"]
+  type    = list(string)
+  default = ["GET", "HEAD"]
 }

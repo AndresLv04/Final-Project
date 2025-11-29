@@ -10,7 +10,7 @@ locals {
     Owner       = var.owner
     ManagedBy   = "Terraform"
   }
-  
+
   topic_name = "${var.project_name}-${var.environment}-result-ready"
 }
 
@@ -122,7 +122,7 @@ resource "aws_ses_configuration_set" "main" {
   sending_enabled            = true
 
   delivery_options {
-    tls_policy = "Require"  # Forzar TLS
+    tls_policy = "Require" # Forzar TLS
   }
 }
 
