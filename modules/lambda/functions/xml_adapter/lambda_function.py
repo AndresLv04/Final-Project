@@ -1,10 +1,11 @@
 import json
-import os
-import boto3
 import logging
+import os
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 import xml.etree.ElementTree as ET
+
+import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -24,7 +25,7 @@ def lambda_handler(event, context):
       - Invocación directa con {"xml_body": "<LabResult>...</LabResult>"}
     """
     logger.info("XML adapter started")
-    logger.info(f"Event: {json.dumps(event)}")
+    logger.info("Event: %s", json.dumps(event))
 
     # 1) Obtener XML como texto
     xml_text = extract_xml_from_event(event)
@@ -40,7 +41,9 @@ def lambda_handler(event, context):
     )
 
     logger.info(
-        f"Invoked ingest function: {INGEST_FUNCTION_NAME}, response: {response}"
+        "Invoked ingest function: %s, response: %s",
+        INGEST_FUNCTION_NAME,
+        response,
     )
 
     return {
@@ -73,7 +76,7 @@ def extract_xml_from_event(event: Dict[str, Any]) -> str:
         s3 = boto3.client("s3")
         obj = s3.get_object(Bucket=bucket, Key=key)
         body = obj["Body"].read().decode("utf-8")
-        logger.info(f"Read XML file from s3://{bucket}/{key}")
+        logger.info("Read XML file from s3://%s/%s", bucket, key)
         return body
 
     raise ValueError("No XML found in event")
@@ -97,7 +100,6 @@ def parse_xml_to_json(xml_text: str) -> Dict[str, Any]:
       </Tests>
     </LabResult>
     """
-
     root = ET.fromstring(xml_text)
 
     # Lab info
@@ -113,13 +115,11 @@ def parse_xml_to_json(xml_text: str) -> Dict[str, Any]:
 
     # Tests
     tests_node = root.find("Tests")
-    first_test_node = None
-    if tests_node is not None:
-        first_test_node = tests_node.find("Test")
+    first_test_node = tests_node.find("Test") if tests_node is not None else None
 
     test_type_code = ""
     test_type_name = ""
-    test_date_iso = None
+    test_date_iso: str | None = None
 
     if first_test_node is not None:
         test_type_code = first_test_node.get("code", "") or ""
@@ -127,12 +127,11 @@ def parse_xml_to_json(xml_text: str) -> Dict[str, Any]:
         test_date_raw = first_test_node.get("date")
 
         if test_date_raw:
-            # Ya viene ISO? usamos directo
             try:
                 # Intentamos parsear por si viene sin Z
                 dt = datetime.fromisoformat(test_date_raw.replace("Z", "+00:00"))
                 test_date_iso = dt.isoformat().replace("+00:00", "Z")
-            except Exception:
+            except Exception:  # noqa: BLE001
                 test_date_iso = test_date_raw
 
     test_type = test_type_name or test_type_code or "Unknown"
@@ -177,6 +176,7 @@ def parse_xml_to_json(xml_text: str) -> Dict[str, Any]:
 
     normalized: Dict[str, Any] = {
         "patient_id": patient_id,
+        "patient_name": patient_name,
         "lab_id": lab_id,
         "lab_name": LAB_NAME_DEFAULT,
         "test_type": test_type,
@@ -184,5 +184,5 @@ def parse_xml_to_json(xml_text: str) -> Dict[str, Any]:
         "results": results,
     }
 
-    logger.info(f"Normalized XML to JSON: {json.dumps(normalized)}")
+    logger.info("Normalized XML to JSON: %s", json.dumps(normalized))
     return normalized

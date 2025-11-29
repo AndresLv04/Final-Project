@@ -21,10 +21,8 @@ from botocore.exceptions import ClientError
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger(__name__)
 
@@ -50,23 +48,23 @@ class LabResultsProcessor:
     def __init__(self):
         """Initialize AWS clients and database connection"""
         # Environment variables
-        self.sqs_queue_url = os.environ['SQS_QUEUE_URL']
-        self.s3_bucket = os.environ['S3_BUCKET']
-        self.sns_topic_arn = os.environ.get('SNS_TOPIC_ARN')
+        self.sqs_queue_url = os.environ["SQS_QUEUE_URL"]
+        self.s3_bucket = os.environ["S3_BUCKET"]
+        self.sns_topic_arn = os.environ.get("SNS_TOPIC_ARN")
 
         # Database configuration
         self.db_config = {
-            'host': os.environ['DB_HOST'],
-            'port': int(os.environ.get('DB_PORT', 5432)),
-            'database': os.environ['DB_NAME'],
-            'user': os.environ['DB_USER'],
-            'password': os.environ['DB_PASSWORD'],
+            "host": os.environ["DB_HOST"],
+            "port": int(os.environ.get("DB_PORT", 5432)),
+            "database": os.environ["DB_NAME"],
+            "user": os.environ["DB_USER"],
+            "password": os.environ["DB_PASSWORD"],
         }
 
         # AWS clients
-        self.sqs = boto3.client('sqs')
-        self.s3 = boto3.client('s3')
-        self.sns = boto3.client('sns') if self.sns_topic_arn else None
+        self.sqs = boto3.client("sqs")
+        self.s3 = boto3.client("s3")
+        self.sns = boto3.client("sns") if self.sns_topic_arn else None
 
         # Database connection
         self.db_conn = None
@@ -86,9 +84,7 @@ class LabResultsProcessor:
                 logger.info("Database connection established")
                 return
             except psycopg2.OperationalError as e:
-                logger.error(
-                    f"Database connection attempt {attempt + 1} failed: {e}"
-                )
+                logger.error(f"Database connection attempt {attempt + 1} failed: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                 else:
@@ -115,11 +111,11 @@ class LabResultsProcessor:
                 QueueUrl=self.sqs_queue_url,
                 MaxNumberOfMessages=10,  # Process up to 10 messages at once
                 WaitTimeSeconds=20,  # Long polling
-                MessageAttributeNames=['All'],
-                AttributeNames=['All'],
+                MessageAttributeNames=["All"],
+                AttributeNames=["All"],
             )
 
-            messages = response.get('Messages', [])
+            messages = response.get("Messages", [])
             if messages:
                 logger.info(f"Received {len(messages)} messages from queue")
 
@@ -139,7 +135,7 @@ class LabResultsProcessor:
                 Key=s3_key,
             )
 
-            content = response['Body'].read().decode('utf-8')
+            content = response["Body"].read().decode("utf-8")
             data = json.loads(content)
 
             logger.info("Successfully downloaded and parsed S3 object")
@@ -155,8 +151,12 @@ class LabResultsProcessor:
     def validate_lab_result(self, data: Dict) -> bool:
         """Validate lab result data structure"""
         required_fields = [
-            'patient_id', 'lab_id', 'lab_name', 'test_type',
-            'test_date', 'results',
+            "patient_id",
+            "lab_id",
+            "lab_name",
+            "test_type",
+            "test_date",
+            "results",
         ]
 
         for field in required_fields:
@@ -164,13 +164,17 @@ class LabResultsProcessor:
                 logger.error(f"Missing required field: {field}")
                 return False
 
-        if not isinstance(data['results'], list) or len(data['results']) == 0:
+        if not isinstance(data["results"], list) or len(data["results"]) == 0:
             logger.error("Results must be a non-empty list")
             return False
 
-        for result in data['results']:
+        for result in data["results"]:
             required_result_fields = [
-                'test_code', 'test_name', 'value', 'unit', 'reference_range',
+                "test_code",
+                "test_name",
+                "value",
+                "unit",
+                "reference_range",
             ]
             for field in required_result_fields:
                 if field not in result:
@@ -196,16 +200,16 @@ class LabResultsProcessor:
                     ) RETURNING result_id
                     """,
                     (
-                        data['patient_id'],
-                        data['lab_id'],
-                        data['lab_name'],
-                        data['test_type'],
-                        data['test_date'],
-                        data.get('physician', {}).get('name'),
-                        data.get('physician', {}).get('npi'),
-                        'completed',
+                        data["patient_id"],
+                        data["lab_id"],
+                        data["lab_name"],
+                        data["test_type"],
+                        data["test_date"],
+                        data.get("physician", {}).get("name"),
+                        data.get("physician", {}).get("npi"),
+                        "completed",
                         s3_key,
-                        data.get('notes'),
+                        data.get("notes"),
                     ),
                 )
 
@@ -213,7 +217,7 @@ class LabResultsProcessor:
                 logger.info(f"Inserted lab_result with ID: {result_id}")
 
                 # Insert test values
-                for test in data['results']:
+                for test in data["results"]:
                     cursor.execute(
                         """
                         INSERT INTO test_values (
@@ -223,18 +227,16 @@ class LabResultsProcessor:
                         """,
                         (
                             result_id,
-                            test['test_code'],
-                            test['test_name'],
-                            test['value'],
-                            test['unit'],
-                            test['reference_range'],
-                            test.get('is_abnormal', False),
+                            test["test_code"],
+                            test["test_name"],
+                            test["value"],
+                            test["unit"],
+                            test["reference_range"],
+                            test.get("is_abnormal", False),
                         ),
                     )
 
-                logger.info(
-                    f"Inserted {len(data['results'])} test values"
-                )
+                logger.info(f"Inserted {len(data['results'])} test values")
 
                 # Log to audit_log
                 cursor.execute(
@@ -244,11 +246,11 @@ class LabResultsProcessor:
                     ) VALUES (%s, %s, %s, %s, %s)
                     """,
                     (
-                        'lab_results',
+                        "lab_results",
                         result_id,
-                        'INSERT',
-                        'worker',
-                        json.dumps({'source': 'sqs_processor'}),
+                        "INSERT",
+                        "worker",
+                        json.dumps({"source": "sqs_processor"}),
                     ),
                 )
 
@@ -268,15 +270,15 @@ class LabResultsProcessor:
         """Move file from incoming/ to processed/ in S3"""
         try:
             # Generate new key in processed/ folder
-            processed_key = s3_key.replace('incoming/', 'processed/', 1)
+            processed_key = s3_key.replace("incoming/", "processed/", 1)
 
             # Copy object with server-side encryption (AES256)
             self.s3.copy_object(
                 Bucket=self.s3_bucket,
-                CopySource={'Bucket': self.s3_bucket, 'Key': s3_key},
+                CopySource={"Bucket": self.s3_bucket, "Key": s3_key},
                 Key=processed_key,
-                ServerSideEncryption='AES256',
-                MetadataDirective='COPY',
+                ServerSideEncryption="AES256",
+                MetadataDirective="COPY",
             )
 
             # Delete original
@@ -285,9 +287,7 @@ class LabResultsProcessor:
                 Key=s3_key,
             )
 
-            logger.info(
-                f"Moved file to: s3://{self.s3_bucket}/{processed_key}"
-            )
+            logger.info(f"Moved file to: s3://{self.s3_bucket}/{processed_key}")
             return processed_key
 
         except ClientError as e:
@@ -302,20 +302,20 @@ class LabResultsProcessor:
 
         try:
             message = {
-                'result_id': result_id,
-                'patient_id': patient_id,
-                'timestamp': datetime.utcnow().isoformat(),
-                'event_type': 'lab_result_ready',
+                "result_id": result_id,
+                "patient_id": patient_id,
+                "timestamp": datetime.utcnow().isoformat(),
+                "event_type": "lab_result_ready",
             }
 
             self.sns.publish(
                 TopicArn=self.sns_topic_arn,
                 Message=json.dumps(message),
-                Subject='Lab Result Ready for Patient',
+                Subject="Lab Result Ready for Patient",
                 MessageAttributes={
-                    'event_type': {
-                        'DataType': 'String',
-                        'StringValue': 'result_completed',
+                    "event_type": {
+                        "DataType": "String",
+                        "StringValue": "result_completed",
                     }
                 },
             )
@@ -340,9 +340,9 @@ class LabResultsProcessor:
         """Process a single SQS message"""
         try:
             # Parse message body
-            body = json.loads(message['Body'])
-            s3_key = body['s3_key']
-            patient_id = body['patient_id']
+            body = json.loads(message["Body"])
+            s3_key = body["s3_key"]
+            patient_id = body["patient_id"]
 
             logger.info(f"Processing message for patient {patient_id}")
 
@@ -385,11 +385,9 @@ class LabResultsProcessor:
             self.publish_notification(result_id, patient_id)
 
             # Delete message from queue
-            self.delete_message(message['ReceiptHandle'])
+            self.delete_message(message["ReceiptHandle"])
 
-            logger.info(
-                f"Successfully processed message for patient {patient_id}"
-            )
+            logger.info(f"Successfully processed message for patient {patient_id}")
             return True
 
         except Exception as e:
@@ -415,9 +413,7 @@ class LabResultsProcessor:
 
                 # If no messages, just continue polling
                 if not messages:
-                    logger.debug(
-                        "No messages available, continuing to poll..."
-                    )
+                    logger.debug("No messages available, continuing to poll...")
 
             except Exception as e:
                 logger.error(f"Unexpected error in main loop: {e}")
@@ -435,15 +431,17 @@ def main():
 
     # Validate environment variables
     required_vars = [
-        'SQS_QUEUE_URL', 'S3_BUCKET',
-        'DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD',
+        "SQS_QUEUE_URL",
+        "S3_BUCKET",
+        "DB_HOST",
+        "DB_NAME",
+        "DB_USER",
+        "DB_PASSWORD",
     ]
 
     missing_vars = [var for var in required_vars if not os.environ.get(var)]
     if missing_vars:
-        logger.error(
-            f"Missing required environment variables: {missing_vars}"
-        )
+        logger.error(f"Missing required environment variables: {missing_vars}")
         sys.exit(1)
 
     # Create and run processor

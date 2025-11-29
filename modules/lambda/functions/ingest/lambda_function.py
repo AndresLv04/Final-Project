@@ -4,11 +4,12 @@ Recibe resultados de laboratorio en formato JSON, valida y envía a procesamient
 """
 
 import json
-import boto3
+import logging
 import os
 from datetime import datetime
-import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
+import boto3
 
 # Configuración de logging
 logger = logging.getLogger()
@@ -34,7 +35,7 @@ def lambda_handler(event, context):
     """
     try:
         logger.info("Lambda Ingest (JSON) iniciado")
-        logger.info(f"Event: {json.dumps(event)}")
+        logger.info("Event: %s", json.dumps(event))
 
         # 1. Parsear el body
         body = parse_body(event)
@@ -54,7 +55,7 @@ def lambda_handler(event, context):
         message_id = send_to_sqs(s3_key, result_id, body)
 
         # 6. Respuesta exitosa
-        logger.info(f"Procesamiento exitoso. Result ID: {result_id}")
+        logger.info("Procesamiento exitoso. Result ID: %s", result_id)
 
         return success_response(
             {
@@ -66,9 +67,9 @@ def lambda_handler(event, context):
             }
         )
 
-    except Exception as e:
-        logger.error(f"Error en lambda_handler: {str(e)}", exc_info=True)
-        return error_response(500, f"Internal server error: {str(e)}")
+    except Exception as exc:
+        logger.error("Error en lambda_handler: %s", str(exc), exc_info=True)
+        return error_response(500, f"Internal server error: {str(exc)}")
 
 
 def parse_body(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -79,15 +80,15 @@ def parse_body(event: Dict[str, Any]) -> Dict[str, Any]:
                 return json.loads(event["body"])
             return event["body"]
         return event
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in request body: {str(e)}")
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON in request body: {str(exc)}") from exc
 
 
 def validate_lab_result(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Valida el formato del resultado de laboratorio
     """
-    errors = []
+    errors: list[str] = []
 
     required_fields = [
         "patient_id",
@@ -129,9 +130,9 @@ def validate_lab_result(data: Dict[str, Any]) -> Dict[str, Any]:
     return {"valid": len(errors) == 0, "errors": errors}
 
 
-def validate_test_result(result: Dict[str, Any], index: int) -> list:
+def validate_test_result(result: Dict[str, Any], index: int) -> list[str]:
     """Valida un resultado de test individual"""
-    errors = []
+    errors: list[str] = []
     prefix = f"results[{index}]"
 
     required = ["test_code", "test_name", "value", "unit"]
@@ -188,11 +189,11 @@ def save_to_s3(data: Dict[str, Any], result_id: str) -> str:
             },
         )
 
-        logger.info(f"Saved to S3: s3://{S3_BUCKET}/{s3_key}")
+        logger.info("Saved to S3: s3://%s/%s", S3_BUCKET, s3_key)
         return s3_key
 
-    except Exception as e:
-        logger.error(f"Error saving to S3: {str(e)}")
+    except Exception as exc:
+        logger.error("Error saving to S3: %s", str(exc))
         raise
 
 
@@ -237,11 +238,11 @@ def send_to_sqs(s3_key: str, result_id: str, data: Dict[str, Any]) -> str:
         )
 
         message_id = response["MessageId"]
-        logger.info(f"Sent to SQS: MessageId={message_id}")
+        logger.info("Sent to SQS: MessageId=%s", message_id)
         return message_id
 
-    except Exception as e:
-        logger.error(f"Error sending to SQS: {str(e)}")
+    except Exception as exc:
+        logger.error("Error sending to SQS: %s", str(exc))
         raise
 
 
@@ -257,7 +258,7 @@ def success_response(data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def error_response(status_code: int, message) -> Dict[str, Any]:
+def error_response(status_code: int, message: Any) -> Dict[str, Any]:
     """Genera respuesta de error para API Gateway"""
     if isinstance(message, list):
         error_msg = "; ".join(map(str, message))

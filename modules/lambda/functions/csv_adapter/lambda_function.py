@@ -1,11 +1,12 @@
-import json
-import os
-import boto3
-import logging
-from datetime import datetime
-from typing import Dict, Any, List
 import csv
 import io
+import json
+import logging
+import os
+from datetime import datetime
+from typing import Any, Dict, List
+
+import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -41,7 +42,9 @@ def lambda_handler(event, context):
     )
 
     logger.info(
-        f"Invoked ingest function: {INGEST_FUNCTION_NAME}, response: {response}"
+        "Invoked ingest function: %s, response: %s",
+        INGEST_FUNCTION_NAME,
+        response,
     )
 
     return {
@@ -72,7 +75,7 @@ def extract_csv_from_event(event: Dict[str, Any]) -> str:
         s3 = boto3.client("s3")
         obj = s3.get_object(Bucket=bucket, Key=key)
         body = obj["Body"].read().decode("utf-8")
-        logger.info(f"Read CSV file from s3://{bucket}/{key}")
+        logger.info("Read CSV file from s3://%s/%s", bucket, key)
         return body
 
     raise ValueError("No CSV found in event")
@@ -87,11 +90,10 @@ def parse_csv_to_json(csv_text: str) -> Dict[str, Any]:
       - un solo paciente por archivo
       - misma fecha para todas las filas
     """
+    file_obj = io.StringIO(csv_text)
+    reader = csv.DictReader(file_obj)
 
-    f = io.StringIO(csv_text)
-    reader = csv.DictReader(f)
-
-    rows: List[Dict[str, str]] = [row for row in reader]
+    rows: List[Dict[str, str]] = list(reader)
 
     if not rows:
         raise ValueError("CSV has no data rows")
@@ -111,9 +113,7 @@ def parse_csv_to_json(csv_text: str) -> Dict[str, Any]:
         test_type = test_name or test_code or "Unknown"
 
     # Normalizar fecha a ISO
-    test_date_iso = None
     if test_date_raw:
-        # intentamos YYYY-MM-DD
         try:
             dt = datetime.strptime(test_date_raw, "%Y-%m-%d")
             test_date_iso = dt.isoformat() + "Z"
@@ -125,12 +125,12 @@ def parse_csv_to_json(csv_text: str) -> Dict[str, Any]:
 
     results: List[Dict[str, Any]] = []
 
-    for r in rows:
-        code = r.get("TestCode", "")
-        name = r.get("TestName", "") or code
-        value_str = r.get("Value", "")
-        unit = r.get("Unit", "")
-        ref_range = r.get("RefRange", "")
+    for row in rows:
+        code = row.get("TestCode", "")
+        name = row.get("TestName", "") or code
+        value_str = row.get("Value", "")
+        unit = row.get("Unit", "")
+        ref_range = row.get("RefRange", "")
 
         try:
             value = float(value_str)
@@ -162,5 +162,5 @@ def parse_csv_to_json(csv_text: str) -> Dict[str, Any]:
         "results": results,
     }
 
-    logger.info(f"Normalized CSV to JSON: {json.dumps(normalized)}")
+    logger.info("Normalized CSV to JSON: %s", json.dumps(normalized))
     return normalized
