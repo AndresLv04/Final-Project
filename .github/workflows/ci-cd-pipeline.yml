@@ -301,8 +301,25 @@ jobs:
       - name: Deploy Lambda Functions
         run: |
           for function in ingest notify pdf_generator; do
+            case "$function" in
+              ingest)
+                LAMBDA_NAME="healthcare-lab-platform-dev-ingest"
+                ;;
+              notify)
+                LAMBDA_NAME="healthcare-lab-platform-dev-notify"
+                ;;
+              pdf_generator)
+                LAMBDA_NAME="healthcare-lab-platform-dev-pdf-generator"
+                ;;
+              *)
+                echo "Función desconocida: $function"
+                exit 1
+                ;;
+            esac
+
+            echo "Actualizando función Lambda $LAMBDA_NAME"
             aws lambda update-function-code \
-              --function-name healthcare-lab-dev-${function} \
+              --function-name "$LAMBDA_NAME" \
               --zip-file fileb://lambda-artifacts/lambda-${function}/function.zip
           done
 
@@ -319,20 +336,20 @@ jobs:
       - name: Update ECS Services
         run: |
           aws ecs update-service \
-            --cluster healthcare-lab-dev-cluster \
-            --service healthcare-lab-dev-worker \
+            --cluster healthcare-lab-platform-dev-cluster \
+            --service healthcare-lab-platform-dev-worker \
             --force-new-deployment
 
           aws ecs update-service \
-            --cluster healthcare-lab-dev-cluster \
-            --service healthcare-lab-dev-portal \
+            --cluster healthcare-lab-platform-dev-cluster \
+            --service healthcare-lab-platform-dev-portal \
             --force-new-deployment
 
       - name: Wait for deployment
         run: |
           aws ecs wait services-stable \
-            --cluster healthcare-lab-dev-cluster \
-            --services healthcare-lab-dev-worker healthcare-lab-dev-portal
+            --cluster healthcare-lab-platform-dev-cluster \
+            --services healthcare-lab-platform-dev-worker healthcare-lab-platform-dev-portal
 
   # ===================================
   # JOB 7: Deploy to Production
@@ -376,12 +393,11 @@ jobs:
       - name: Update ECS Services
         run: |
           aws ecs update-service \
-            --cluster healthcare-lab-prod-cluster \
-            --service healthcare-lab-prod-worker \
+            --cluster healthcare-lab-platform-prod-cluster \
+            --service healthcare-lab-platform-prod-worker \
             --force-new-deployment
 
           aws ecs update-service \
-            --cluster healthcare-lab-prod-cluster \
-            --service healthcare-lab-prod-portal \
+            --cluster healthcare-lab-platform-prod-cluster \
+            --service healthcare-lab-platform-prod-portal \
             --force-new-deployment
-            
