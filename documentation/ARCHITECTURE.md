@@ -43,9 +43,9 @@ We decided to accept the significantly higher monthly cost of RDS compared to Dy
 
    **Cost comparison**
    * ECS Fargate
-![Estimate the cost ECS](documentation/images/cost-ecs.png)
+![Estimate the cost ECS](../documentation/images/cost-ecs.png)
    * EC2
-![Estimate the cost RDS](documentation/images/cost-ec2.png)
+![Estimate the cost RDS](../documentation/images/cost-ec2.png)
 
 **Decision:** ECS on Fargate:
 
