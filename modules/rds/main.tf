@@ -1,3 +1,4 @@
+# Common tags and RDS identifiers
 locals {
   common_tags = {
     Project     = var.project_name
@@ -8,7 +9,7 @@ locals {
 
   db_identifier = "${var.project_name}-${var.environment}-postgres"
 
-  # Generar snapshot name si no se proporciona
+  # Final snapshot name when not skipped
   final_snapshot_identifier = var.skip_final_snapshot ? null : (
     var.final_snapshot_identifier != null ?
     var.final_snapshot_identifier :
@@ -16,12 +17,11 @@ locals {
   )
 }
 
-# Data sources
+# AWS metadata data sources
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
-// DB SUBNET GROUP
-// Agrupa las subnets donde puede vivir RDS
+# RDS subnet group
 resource "aws_db_subnet_group" "main" {
   name       = "${local.db_identifier}-subnet-group"
   subnet_ids = var.subnet_ids
@@ -34,55 +34,53 @@ resource "aws_db_subnet_group" "main" {
   )
 }
 
-// Configuración de PostgreSQL
-
-//Parametros de grupo
+# PostgreSQL parameter group
 resource "aws_db_parameter_group" "main" {
   name   = "${local.db_identifier}-params"
   family = var.parameter_family
 
-  # Logging para auditoría
+  # Logging
   parameter {
     name         = "log_statement"
-    value        = "all" # Loggear todos los statements (DDL, DML)
+    value        = "all"
     apply_method = "pending-reboot"
   }
 
   parameter {
     name         = "log_min_duration_statement"
-    value        = "1000" # Loggear queries que tomen >1 segundo
+    value        = "1000"
     apply_method = "pending-reboot"
   }
 
   parameter {
     name         = "log_connections"
-    value        = "1" # Loggear todas las conexiones
+    value        = "1"
     apply_method = "pending-reboot"
   }
 
   parameter {
     name         = "log_disconnections"
-    value        = "1" # Loggear todas las desconexiones
+    value        = "1"
     apply_method = "pending-reboot"
   }
 
   # Performance
   parameter {
     name         = "shared_buffers"
-    value        = "{DBInstanceClassMemory/32768}" # 25% de RAM
+    value        = "{DBInstanceClassMemory/32768}"
     apply_method = "pending-reboot"
   }
 
   parameter {
     name         = "max_connections"
-    value        = "100" # Límite de conexiones concurrentes
+    value        = "100"
     apply_method = "pending-reboot"
   }
 
   # Security
   parameter {
     name         = "rds.force_ssl"
-    value        = "1" # No permitir conexiones sin SSL
+    value        = "1"
     apply_method = "pending-reboot"
   }
 
@@ -94,6 +92,7 @@ resource "aws_db_parameter_group" "main" {
   )
 }
 
+# PostgreSQL RDS instance
 resource "aws_db_instance" "main" {
   identifier = local.db_identifier
 
@@ -101,7 +100,7 @@ resource "aws_db_instance" "main" {
   engine         = "postgres"
   engine_version = var.engine_version
 
-  # Instance
+  # Instance sizing
   instance_class        = var.db_instance_class
   allocated_storage     = var.allocated_storage
   max_allocated_storage = var.max_allocated_storage
@@ -109,7 +108,7 @@ resource "aws_db_instance" "main" {
   storage_encrypted     = var.storage_encrypted
   kms_key_id            = var.kms_key_id
 
-  # Database
+  # Database auth
   db_name  = var.db_name
   username = var.db_username
   password = var.db_password
@@ -118,38 +117,38 @@ resource "aws_db_instance" "main" {
   # Network
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = var.security_group_ids
-  publicly_accessible    = false # CRÍTICO: Nunca exponer a internet
+  publicly_accessible    = false
 
-  # Parameter Group
+  # Parameter group
   parameter_group_name = aws_db_parameter_group.main.name
 
-  # Backup
+  # Backup and maintenance
   backup_retention_period   = var.backup_retention_period
   backup_window             = var.backup_window
   maintenance_window        = var.maintenance_window
   skip_final_snapshot       = var.skip_final_snapshot
   final_snapshot_identifier = local.final_snapshot_identifier
 
-  # High Availability
+  # High availability
   multi_az = var.db_multi_az
 
-  # Monitoring
+  # Monitoring and insights
   enabled_cloudwatch_logs_exports       = var.enabled_cloudwatch_logs_exports
   performance_insights_enabled          = var.performance_insights_enabled
   performance_insights_retention_period = var.performance_insights_retention_period
-  monitoring_interval                   = 60 # Enhanced monitoring cada 60 segundos
+  monitoring_interval                   = 60
   monitoring_role_arn                   = aws_iam_role.rds_monitoring.arn
 
-  # Deletion Protection
+  # Deletion protection
   deletion_protection = var.deletion_protection
 
-  # Apply changes
+  # Apply changes strategy
   apply_immediately = var.apply_immediately
 
-  # Auto minor version upgrade
+  # Minor version upgrades
   auto_minor_version_upgrade = true
 
-  # Copy tags to snapshots
+  # Tag snapshots
   copy_tags_to_snapshot = true
 
   tags = merge(

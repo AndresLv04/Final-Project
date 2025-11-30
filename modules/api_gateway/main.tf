@@ -1,8 +1,4 @@
-# ============================================
-# API GATEWAY MODULE - MAIN
-# ============================================
-
-# Locals
+# Local values for common tags and API name
 locals {
   common_tags = {
     Project     = var.project_name
@@ -14,10 +10,7 @@ locals {
   api_name = "${var.project_name}-${var.environment}-api"
 }
 
-# ============================================
-# 1. REST API
-# ============================================
-
+# REST API definition
 resource "aws_api_gateway_rest_api" "main" {
   name        = local.api_name
   description = "Healthcare Lab Results API - ${var.environment}"
@@ -34,44 +27,42 @@ resource "aws_api_gateway_rest_api" "main" {
   )
 }
 
-# ============================================
-# 2. RESOURCES (Endpoints)
-# ============================================
-
+# /api base resource
 resource "aws_api_gateway_resource" "api" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_rest_api.main.root_resource_id
   path_part   = "api"
 }
 
+# /api/v1 resource
 resource "aws_api_gateway_resource" "v1" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.api.id
   path_part   = "v1"
 }
 
+# /api/v1/ingest resource
 resource "aws_api_gateway_resource" "ingest" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.v1.id
   path_part   = "ingest"
 }
 
+# /api/v1/health resource
 resource "aws_api_gateway_resource" "health" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.v1.id
   path_part   = "health"
 }
 
+# /api/v1/pdf resource
 resource "aws_api_gateway_resource" "pdf" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.v1.id
   path_part   = "pdf"
 }
 
-# ============================================
-# 3. METHODS - POST /api/v1/ingest
-# ============================================
-
+# POST /api/v1/ingest method
 resource "aws_api_gateway_method" "ingest_post" {
   rest_api_id      = aws_api_gateway_rest_api.main.id
   resource_id      = aws_api_gateway_resource.ingest.id
@@ -82,6 +73,7 @@ resource "aws_api_gateway_method" "ingest_post" {
   request_validator_id = aws_api_gateway_request_validator.body.id
 }
 
+# Lambda proxy integration for POST /api/v1/ingest
 resource "aws_api_gateway_integration" "ingest_lambda" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.ingest.id
@@ -92,6 +84,7 @@ resource "aws_api_gateway_integration" "ingest_lambda" {
   uri                     = var.lambda_ingest_invoke_arn
 }
 
+# Lambda permission for ingest endpoint
 resource "aws_lambda_permission" "api_gateway_ingest" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
@@ -100,10 +93,7 @@ resource "aws_lambda_permission" "api_gateway_ingest" {
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
 }
 
-# ============================================
-# 4. METHODS - GET /api/v1/health
-# ============================================
-
+# GET /api/v1/health method
 resource "aws_api_gateway_method" "health_get" {
   rest_api_id      = aws_api_gateway_rest_api.main.id
   resource_id      = aws_api_gateway_resource.health.id
@@ -112,6 +102,7 @@ resource "aws_api_gateway_method" "health_get" {
   api_key_required = false
 }
 
+# MOCK integration for /api/v1/health
 resource "aws_api_gateway_integration" "health_mock" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.health.id
@@ -126,6 +117,7 @@ resource "aws_api_gateway_integration" "health_mock" {
   }
 }
 
+# 200 response for /api/v1/health
 resource "aws_api_gateway_method_response" "health_200" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.health.id
@@ -137,6 +129,7 @@ resource "aws_api_gateway_method_response" "health_200" {
   }
 }
 
+# Integration response body for /api/v1/health
 resource "aws_api_gateway_integration_response" "health" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.health.id
@@ -155,10 +148,7 @@ resource "aws_api_gateway_integration_response" "health" {
   depends_on = [aws_api_gateway_integration.health_mock]
 }
 
-# ============================================
-# 5. METHODS - POST /api/v1/pdf
-# ============================================
-
+# POST /api/v1/pdf method
 resource "aws_api_gateway_method" "pdf_post" {
   rest_api_id      = aws_api_gateway_rest_api.main.id
   resource_id      = aws_api_gateway_resource.pdf.id
@@ -167,6 +157,7 @@ resource "aws_api_gateway_method" "pdf_post" {
   api_key_required = var.enable_api_key_required
 }
 
+# Lambda proxy integration for POST /api/v1/pdf
 resource "aws_api_gateway_integration" "pdf_lambda" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.pdf.id
@@ -177,6 +168,7 @@ resource "aws_api_gateway_integration" "pdf_lambda" {
   uri                     = var.lambda_pdf_invoke_arn
 }
 
+# Lambda permission for pdf endpoint
 resource "aws_lambda_permission" "api_gateway_pdf" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
@@ -185,10 +177,7 @@ resource "aws_lambda_permission" "api_gateway_pdf" {
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
 }
 
-# ============================================
-# 6. CORS - OPTIONS Methods
-# ============================================
-
+# OPTIONS /api/v1/ingest method for CORS
 resource "aws_api_gateway_method" "ingest_options" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
   resource_id   = aws_api_gateway_resource.ingest.id
@@ -196,6 +185,7 @@ resource "aws_api_gateway_method" "ingest_options" {
   authorization = "NONE"
 }
 
+# MOCK integration for OPTIONS /api/v1/ingest
 resource "aws_api_gateway_integration" "ingest_options" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.ingest.id
@@ -209,6 +199,7 @@ resource "aws_api_gateway_integration" "ingest_options" {
   }
 }
 
+# CORS method response for OPTIONS /api/v1/ingest
 resource "aws_api_gateway_method_response" "ingest_options_200" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.ingest.id
@@ -226,6 +217,7 @@ resource "aws_api_gateway_method_response" "ingest_options_200" {
   }
 }
 
+# CORS integration response headers for OPTIONS /api/v1/ingest
 resource "aws_api_gateway_integration_response" "ingest_options" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.ingest.id
@@ -241,10 +233,7 @@ resource "aws_api_gateway_integration_response" "ingest_options" {
   depends_on = [aws_api_gateway_integration.ingest_options]
 }
 
-# ============================================
-# 7. REQUEST VALIDATOR
-# ============================================
-
+# Request validator for JSON body
 resource "aws_api_gateway_request_validator" "body" {
   name                        = "${local.api_name}-body-validator"
   rest_api_id                 = aws_api_gateway_rest_api.main.id
@@ -252,10 +241,7 @@ resource "aws_api_gateway_request_validator" "body" {
   validate_request_parameters = false
 }
 
-# ============================================
-# 8. DEPLOYMENT
-# ============================================
-
+# API deployment with trigger for changes
 resource "aws_api_gateway_deployment" "main" {
   rest_api_id = aws_api_gateway_rest_api.main.id
 
@@ -285,10 +271,7 @@ resource "aws_api_gateway_deployment" "main" {
   ]
 }
 
-# ============================================
-# 9. STAGE
-# ============================================
-
+# API Gateway stage for the environment
 resource "aws_api_gateway_stage" "main" {
   deployment_id = aws_api_gateway_deployment.main.id
   rest_api_id   = aws_api_gateway_rest_api.main.id
@@ -328,10 +311,7 @@ resource "aws_api_gateway_stage" "main" {
   ]
 }
 
-# ============================================
-# 10. API KEY & USAGE PLAN
-# ============================================
-
+# API key for external labs
 resource "aws_api_gateway_api_key" "lab_external" {
   name    = "${local.api_name}-lab-external-key"
   enabled = true
@@ -345,6 +325,7 @@ resource "aws_api_gateway_api_key" "lab_external" {
   )
 }
 
+# Usage plan for external labs
 resource "aws_api_gateway_usage_plan" "main" {
   name        = "${local.api_name}-usage-plan"
   description = "Usage plan for external labs"
@@ -367,9 +348,9 @@ resource "aws_api_gateway_usage_plan" "main" {
   tags = local.common_tags
 }
 
+# Link API key to usage plan
 resource "aws_api_gateway_usage_plan_key" "main" {
   key_id        = aws_api_gateway_api_key.lab_external.id
   key_type      = "API_KEY"
   usage_plan_id = aws_api_gateway_usage_plan.main.id
-
 }

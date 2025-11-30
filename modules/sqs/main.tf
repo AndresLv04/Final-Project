@@ -1,25 +1,39 @@
+# Local values for common tags and SQS queue names
+locals {
+  common_tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Owner       = var.owner
+    ManagedBy   = "Terraform"
+  }
+
+  queue_name = "${var.project_name}-${var.environment}-lab-results-queue"
+  dlq_name   = "${var.project_name}-${var.environment}-lab-results-dlq"
+}
+
+
 resource "aws_sqs_queue" "main" {
   name = local.queue_name
 
-  # Configuración de mensajes
+  # Message behavior
   visibility_timeout_seconds = var.visibility_timeout_seconds
   message_retention_seconds  = var.message_retention_seconds
   max_message_size           = var.max_message_size
   delay_seconds              = var.delay_seconds
-  receive_wait_time_seconds  = var.receive_wait_time_seconds # Long polling
+  receive_wait_time_seconds  = var.receive_wait_time_seconds # long polling
 
-  # Encriptación
+  # Encryption settings
   sqs_managed_sse_enabled           = var.enable_encryption && var.kms_key_id == null
   kms_master_key_id                 = var.kms_key_id
   kms_data_key_reuse_period_seconds = 300
 
-  # Dead Letter Queue configuration
+  # Dead-letter queue configuration
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.dlq.arn
     maxReceiveCount     = var.max_receive_count
   })
 
-  # Política de reintento
+  # Redrive permissions from DLQ back to main queue
   redrive_allow_policy = jsonencode({
     redrivePermission = "byQueue"
     sourceQueueArns   = [aws_sqs_queue.dlq.arn]
@@ -35,13 +49,14 @@ resource "aws_sqs_queue" "main" {
   )
 }
 
-// QUEUE POLICY (Permisos)
+# Queue policy for producers and secure access
 resource "aws_sqs_queue_policy" "main" {
   queue_url = aws_sqs_queue.main.url
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      # Allow AWS services to send messages to the queue
       {
         Sid    = "AllowSendMessage"
         Effect = "Allow"
@@ -51,11 +66,10 @@ resource "aws_sqs_queue_policy" "main" {
             "sns.amazonaws.com"
           ]
         }
-        Action = [
-          "sqs:SendMessage"
-        ]
+        Action   = ["sqs:SendMessage"]
         Resource = aws_sqs_queue.main.arn
       },
+      # Deny any request over insecure transport (HTTP)
       {
         Sid       = "DenyInsecureTransport"
         Effect    = "Deny"

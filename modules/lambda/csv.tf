@@ -1,10 +1,11 @@
-# Empaquetar código CSV adapter
+# Package CSV adapter Lambda code
 data "archive_file" "lambda_csv_adapter" {
   type        = "zip"
   source_dir  = "${path.module}/functions/csv_adapter"
   output_path = "${path.module}/builds/csv_adapter.zip"
 }
 
+# Lambda function: CSV adapter
 resource "aws_lambda_function" "csv_adapter" {
   filename         = data.archive_file.lambda_csv_adapter.output_path
   function_name    = "${local.lambda_prefix}-csv-adapter"
@@ -43,3 +44,4 @@ resource "aws_lambda_function" "csv_adapter" {
     aws_iam_role_policy_attachment.lambda_vpc
   ]
 }
+

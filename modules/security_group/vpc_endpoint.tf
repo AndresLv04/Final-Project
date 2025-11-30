@@ -1,23 +1,19 @@
-// VPC ENDPOINTS SECURITY GROUP (Opcional)
-
-// Para VPC endpoints (acceso privado a servicios AWS)
-
+# Security group for VPC interface endpoints
 resource "aws_security_group" "vpc_endpoints" {
   name        = "${var.project_name}-${var.environment}-vpc-endpoints-sg"
-  description = "Security group para VPC Endpoints"
+  description = "Security group for VPC endpoints"
   vpc_id      = var.vpc_id
 
-  // REGLAS DE ENTRADA
-  // Permitir HTTPS desde dentro de la VPC
+  # Allow HTTPS from within the VPC CIDR
   ingress {
-    description = "HTTPS desde la VPC"
+    description = "HTTPS from VPC CIDR"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr] // Toda la VPC
+    cidr_blocks = [var.vpc_cidr]
   }
 
-  // REGLAS DE SALIDA
+  # Allow all outbound traffic
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0

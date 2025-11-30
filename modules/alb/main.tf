@@ -1,4 +1,4 @@
-
+# Common locals for tags and portal URL
 locals {
   common_tags = {
     Project     = var.project_name
@@ -13,10 +13,7 @@ locals {
   portal_scheme = var.certificate_arn != "" ? "https" : "http"
 }
 
-# ===================================
-# Application Load Balancer
-# ===================================
-
+# Application Load Balancer (internet-facing)
 resource "aws_lb" "main" {
   name               = "${local.cognito_name}-alb"
   internal           = false
@@ -40,10 +37,7 @@ resource "aws_lb" "main" {
   tags = local.common_tags
 }
 
-# ===================================
-# Target Group for ECS Portal
-# ===================================
-
+# Target group for ECS/Fargate portal service
 resource "aws_lb_target_group" "portal" {
   name        = "${var.project_name}-portaltg"
   port        = var.container_port
@@ -85,10 +79,7 @@ resource "aws_lb_target_group" "portal" {
   }
 }
 
-# ===================================
-# HTTP Listener (Port 80)
-# ===================================
-
+# HTTP listener (port 80) for ALB
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
@@ -118,10 +109,7 @@ resource "aws_lb_listener" "http" {
   tags = local.common_tags
 }
 
-# ===================================
-# HTTPS Listener (Port 443) 
-# ===================================
-
+# HTTPS listener (port 443) when certificate is provided
 resource "aws_lb_listener" "https" {
   count = var.certificate_arn != "" ? 1 : 0
 
@@ -139,11 +127,7 @@ resource "aws_lb_listener" "https" {
   tags = local.common_tags
 }
 
-# ===================================
-# Listener Rules for Path-Based Routing
-# ===================================
-
-# Health check endpoint (no auth required)
+# Listener rule for health check endpoints (no auth)
 resource "aws_lb_listener_rule" "health" {
   listener_arn = var.certificate_arn != "" ? aws_lb_listener.https[0].arn : aws_lb_listener.http.arn
   priority     = 100
@@ -162,7 +146,7 @@ resource "aws_lb_listener_rule" "health" {
   tags = local.common_tags
 }
 
-# API endpoints (may want different routing in future)
+# Listener rule for API endpoints
 resource "aws_lb_listener_rule" "api" {
   listener_arn = var.certificate_arn != "" ? aws_lb_listener.https[0].arn : aws_lb_listener.http.arn
   priority     = 200
@@ -181,7 +165,7 @@ resource "aws_lb_listener_rule" "api" {
   tags = local.common_tags
 }
 
-# Static files (could serve from S3/CloudFront in future)
+# Listener rule for static files
 resource "aws_lb_listener_rule" "static" {
   listener_arn = var.certificate_arn != "" ? aws_lb_listener.https[0].arn : aws_lb_listener.http.arn
   priority     = 300
@@ -200,11 +184,7 @@ resource "aws_lb_listener_rule" "static" {
   tags = local.common_tags
 }
 
-
-# ===================================
-# WAF Association (Optional)
-# ===================================
-
+# Optional WAFv2 Web ACL association for the ALB
 resource "aws_wafv2_web_acl_association" "alb" {
   count = var.waf_web_acl_arn != "" ? 1 : 0
 

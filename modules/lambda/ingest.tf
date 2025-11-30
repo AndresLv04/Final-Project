@@ -1,12 +1,11 @@
-// LAMBDA FUNCTION: INGEST
-
-# Empaquetar código
+# Package Lambda Ingest code
 data "archive_file" "lambda_ingest" {
   type        = "zip"
   source_dir  = "${path.module}/functions/ingest"
   output_path = "${path.module}/builds/ingest.zip"
 }
 
+# Lambda function: Ingest
 resource "aws_lambda_function" "ingest" {
   filename         = data.archive_file.lambda_ingest.output_path
   function_name    = "${local.lambda_prefix}-ingest"
@@ -26,7 +25,7 @@ resource "aws_lambda_function" "ingest" {
     }
   }
 
-  # VPC Configuration (para acceder a RDS)
+  # VPC config to access RDS
   vpc_config {
     subnet_ids         = var.subnet_ids
     security_group_ids = [var.security_group_id]
@@ -46,6 +45,7 @@ resource "aws_lambda_function" "ingest" {
     aws_iam_role_policy_attachment.lambda_vpc
   ]
 }
+
 
 
 

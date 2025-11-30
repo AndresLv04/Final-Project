@@ -1,88 +1,93 @@
-
-// LAMBDA MODULE - VARIABLES
-
-
-// Variables comunes
+# Common
 variable "project_name" {
   description = "Nombre del proyecto"
   type        = string
 }
+
 variable "environment" {
   description = "Ambiente (dev, staging, prod)"
   type        = string
 }
+
 variable "owner" {
   description = "Dueño del proyecto"
   type        = string
 }
 
-// Network
+# Network config for Lambdas
 variable "vpc_id" {
   description = "ID de la VPC"
   type        = string
 }
+
 variable "subnet_ids" {
   description = "IDs de subnets privadas para Lambda"
   type        = list(string)
 }
+
 variable "security_group_id" {
   description = "ID del security group para Lambda"
   type        = string
 }
 
-// S3
+# S3 config
 variable "s3_bucket_name" {
   description = "Nombre del bucket S3 de datos"
   type        = string
 }
+
 variable "s3_bucket_arn" {
   description = "ARN del bucket S3"
   type        = string
 }
 
-# SQS
+# SQS config
 variable "sqs_queue_url" {
   description = "URL de la cola SQS"
   type        = string
 }
-// SQS
+
 variable "sqs_queue_arn" {
   description = "ARN de la cola SQS"
   type        = string
 }
 
-# RDS
+# RDS config
 variable "db_host" {
   description = "Hostname de RDS"
   type        = string
 }
+
 variable "db_port" {
   description = "Puerto de RDS"
   type        = number
 }
+
 variable "db_name" {
   description = "Nombre de la base de datos"
   type        = string
 }
+
 variable "db_username" {
   description = "Usuario de la base de datos"
   type        = string
   sensitive   = true
 }
+
 variable "db_password" {
   description = "Contraseña de la base de datos"
   type        = string
   sensitive   = true
 }
 
-# SNS (para notify)
+# SNS topic for alarms/notify
 variable "sns_topic_arn" {
   description = "ARN del SNS topic"
   type        = string
   default     = ""
 }
 
-# Lambda Configuration
+# Lambda configuration
 variable "lambda_runtime" {
   description = "Runtime de Lambda"
   type        = string
@@ -101,14 +106,14 @@ variable "lambda_memory_size" {
   default     = 512
 }
 
-# Logging
+# Logging configuration
 variable "log_retention_days" {
   description = "Días de retención de logs"
   type        = number
   default     = 7
 }
 
-# SES / Notificaciones
+# SES / Notify config
 variable "ses_email_identity" {
   description = "Dirección FROM para SES (Lambda notify)"
   type        = string

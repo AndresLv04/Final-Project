@@ -1,41 +1,39 @@
-
-
+# Common metadata
 variable "project_name" {
-  description = "Nombre del proyecto"
+  description = "Project name"
   type        = string
 }
 
 variable "environment" {
-  description = "Ambiente (dev, staging, prod)"
+  description = "Environment (dev, staging, prod)"
   type        = string
 }
 
 variable "owner" {
-  description = "Dueño del proyecto"
+  description = "Project owner"
   type        = string
 }
 
-# Variables de red
+# Network settings
 variable "vpc_id" {
-  description = "ID de la VPC donde crear los security groups"
+  description = "VPC ID where security groups will be created"
   type        = string
 }
 
 variable "vpc_cidr" {
-  description = "CIDR de la VPC (para reglas internas)"
+  description = "VPC CIDR block used for internal rules"
   type        = string
 }
 
-//Variables específicas de security groups
-//Specific variables for security groups
+# Security group-specific variables
 variable "allowed_cidr_blocks" {
-  description = "CIDRs permitidos para acceso HTTPS al ALB (para restringir acceso)"
+  description = "CIDR blocks allowed to access the ALB (HTTP/HTTPS)"
   type        = list(string)
-  default     = ["0.0.0.0/0"] # Todo internet por defecto
+  default     = ["0.0.0.0/0"]
 }
 
 variable "enable_ssh_access" {
-  description = "Habilitar acceso SSH (solo para debugging en dev)"
+  description = "Enable SSH access (only for debugging in dev)"
   type        = bool
   default     = false
 }

@@ -1,7 +1,4 @@
-# ============================================
-# 10. CLOUDWATCH LOG GROUP PARA SNS
-# ============================================
-
+# CloudWatch log group for SNS deliveries
 resource "aws_cloudwatch_log_group" "sns_delivery" {
   name              = "/aws/sns/${var.project_name}-${var.environment}"
   retention_in_days = 7
@@ -9,11 +6,7 @@ resource "aws_cloudwatch_log_group" "sns_delivery" {
   tags = local.common_tags
 }
 
-# ============================================
-# 11. CLOUDWATCH ALARMS
-# ============================================
-
-# Alarma: Bounces altos
+# CloudWatch alarm for high SES bounce rate
 resource "aws_cloudwatch_metric_alarm" "ses_bounces" {
   count = var.enable_ses_event_tracking ? 1 : 0
 
@@ -22,7 +15,7 @@ resource "aws_cloudwatch_metric_alarm" "ses_bounces" {
   comparison_operator = "GreaterThanThreshold"
 
   evaluation_periods = 1
-  threshold          = 5 # 5 bounces
+  threshold          = 5
 
   metric_name = "Reputation.BounceRate"
   namespace   = "AWS/SES"
@@ -34,7 +27,7 @@ resource "aws_cloudwatch_metric_alarm" "ses_bounces" {
   tags = local.common_tags
 }
 
-# Alarma: Complaints altos
+# CloudWatch alarm for high SES complaint rate
 resource "aws_cloudwatch_metric_alarm" "ses_complaints" {
   count = var.enable_ses_event_tracking ? 1 : 0
 
@@ -43,7 +36,7 @@ resource "aws_cloudwatch_metric_alarm" "ses_complaints" {
   comparison_operator = "GreaterThanThreshold"
 
   evaluation_periods = 1
-  threshold          = 0.1 # 0.1% complaint rate
+  threshold          = 0.1
 
   metric_name = "Reputation.ComplaintRate"
   namespace   = "AWS/SES"
@@ -55,7 +48,7 @@ resource "aws_cloudwatch_metric_alarm" "ses_complaints" {
   tags = local.common_tags
 }
 
-# Alarma: SNS failed notifications
+# CloudWatch alarm for failed SNS notifications
 resource "aws_cloudwatch_metric_alarm" "sns_failed" {
   alarm_name          = "${var.project_name}-${var.environment}-sns-failed-notifications"
   alarm_description   = "SNS notifications are failing"

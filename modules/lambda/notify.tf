@@ -1,12 +1,11 @@
-# 5. LAMBDA FUNCTION: NOTIFY
-# ============================================
-
+# Package Lambda Notify code
 data "archive_file" "lambda_notify" {
   type        = "zip"
   source_dir  = "${path.module}/functions/notify"
   output_path = "${path.module}/builds/notify.zip"
 }
 
+# Lambda function: Notify
 resource "aws_lambda_function" "notify" {
   filename         = data.archive_file.lambda_notify.output_path
   function_name    = "${local.lambda_prefix}-notify"
@@ -17,7 +16,7 @@ resource "aws_lambda_function" "notify" {
   timeout          = var.lambda_timeout
   memory_size      = var.lambda_memory_size
 
-  # Layer para psycopg2
+  # psycopg2 layer
   layers = [aws_lambda_layer_version.psycopg2.arn]
 
   environment {

@@ -1,10 +1,11 @@
-# Empaquetar código HL7 adapter
+# Package HL7 adapter Lambda code
 data "archive_file" "lambda_hl7_adapter" {
   type        = "zip"
   source_dir  = "${path.module}/functions/hl7_adapter"
   output_path = "${path.module}/builds/hl7_adapter.zip"
 }
 
+# Lambda function: HL7 adapter
 resource "aws_lambda_function" "hl7_adapter" {
   filename         = data.archive_file.lambda_hl7_adapter.output_path
   function_name    = "${local.lambda_prefix}-hl7-adapter"
@@ -44,4 +45,3 @@ resource "aws_lambda_function" "hl7_adapter" {
     aws_iam_role_policy_attachment.lambda_vpc
   ]
 }
-

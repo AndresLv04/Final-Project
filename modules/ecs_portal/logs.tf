@@ -1,8 +1,4 @@
-# ===================================
-# CloudWatch Logs & Alarms for Portal
-# ===================================
-
-# Log group for ECS portal
+# CloudWatch log group for ECS portal
 resource "aws_cloudwatch_log_group" "portal" {
   name              = "/ecs/${var.project_name}-${var.environment}/portal"
   retention_in_days = 7
@@ -10,7 +6,7 @@ resource "aws_cloudwatch_log_group" "portal" {
   tags = var.common_tags
 }
 
-# High CPU alarm
+# High CPU utilization alarm for portal service
 resource "aws_cloudwatch_metric_alarm" "portal_cpu_high" {
   alarm_name          = "${var.project_name}-${var.environment}-portal-cpu-high"
   comparison_operator = "GreaterThanThreshold"
@@ -30,7 +26,7 @@ resource "aws_cloudwatch_metric_alarm" "portal_cpu_high" {
   tags = var.common_tags
 }
 
-# High memory alarm
+# High memory utilization alarm for portal service
 resource "aws_cloudwatch_metric_alarm" "portal_memory_high" {
   alarm_name          = "${var.project_name}-${var.environment}-portal-memory-high"
   comparison_operator = "GreaterThanThreshold"
@@ -50,7 +46,7 @@ resource "aws_cloudwatch_metric_alarm" "portal_memory_high" {
   tags = var.common_tags
 }
 
-# No running tasks alarm
+# Alarm when there are no running tasks in the portal service
 resource "aws_cloudwatch_metric_alarm" "portal_task_count_low" {
   alarm_name          = "${var.project_name}-${var.environment}-portal-no-tasks"
   comparison_operator = "LessThanThreshold"
@@ -69,3 +65,4 @@ resource "aws_cloudwatch_metric_alarm" "portal_task_count_low" {
 
   tags = var.common_tags
 }
+
