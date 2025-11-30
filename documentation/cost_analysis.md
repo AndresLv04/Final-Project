@@ -253,8 +253,8 @@ $1.00 per 1,000 lab results
 ### A. AWS Pricing Calculator Links
 
 **Estimate:** 
-![Cost_analysis](documentation/images/costos_del_sistema1.png)
-![Cost_analysis](documentation/images/costos_del_sistema2.png)
+![Cost_analysis](../documentation/images/cost_system.png)
+![Cost_analysis](../documentation/images/cost_system2.png)
 
 # 4. Implemented Optimization Strategies
 
