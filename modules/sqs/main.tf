@@ -4,9 +4,9 @@ resource "aws_sqs_queue" "main" {
   # Configuración de mensajes
   visibility_timeout_seconds = var.visibility_timeout_seconds
   message_retention_seconds  = var.message_retention_seconds
-  max_message_size          = var.max_message_size
-  delay_seconds             = var.delay_seconds
-  receive_wait_time_seconds = var.receive_wait_time_seconds  # Long polling
+  max_message_size           = var.max_message_size
+  delay_seconds              = var.delay_seconds
+  receive_wait_time_seconds  = var.receive_wait_time_seconds # Long polling
 
   # Encriptación
   sqs_managed_sse_enabled           = var.enable_encryption && var.kms_key_id == null
@@ -57,11 +57,11 @@ resource "aws_sqs_queue_policy" "main" {
         Resource = aws_sqs_queue.main.arn
       },
       {
-        Sid    = "DenyInsecureTransport"
-        Effect = "Deny"
+        Sid       = "DenyInsecureTransport"
+        Effect    = "Deny"
         Principal = "*"
-        Action = "sqs:*"
-        Resource = aws_sqs_queue.main.arn
+        Action    = "sqs:*"
+        Resource  = aws_sqs_queue.main.arn
         Condition = {
           Bool = {
             "aws:SecureTransport" = "false"

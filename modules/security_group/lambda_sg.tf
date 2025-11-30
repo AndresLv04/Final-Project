@@ -12,7 +12,7 @@ resource "aws_security_group" "lambda" {
   // Lambda functions no reciben tráfico entrante directo
   // (son invocadas por eventos, API Gateway, etc.)
 
-/* 
+  /* 
     REGLAS DE SALIDA
     Necesitan acceso a:
      - RDS (para queries)

@@ -10,7 +10,7 @@ resource "aws_cloudwatch_metric_alarm" "target_response_time" {
   namespace           = "AWS/ApplicationELB"
   period              = "300"
   statistic           = "Average"
-  threshold           = "1.0"  # 1 second
+  threshold           = "1.0" # 1 second
   alarm_description   = "ALB target response time is too high"
 
   dimensions = {

@@ -188,7 +188,7 @@ resource "aws_ecs_task_definition" "portal" {
           value = var.pdf_lambda_function_name
         },
         {
-        name  = "APP_URL"
+          name = "APP_URL"
           # URL base pública del portal (CloudFront o dominio propio)
           value = var.app_url
         },
@@ -270,12 +270,12 @@ resource "aws_ecs_service" "portal" {
     container_name   = "portal"
     container_port   = 5000
   }
-  
-  deployment_maximum_percent = 200
+
+  deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
 
 
- 
+
   # Health check grace period for ALB
   health_check_grace_period_seconds = 60
 

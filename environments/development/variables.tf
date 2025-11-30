@@ -21,7 +21,7 @@ variable "vpc" {
     availability_zone             = string
     availability_zone_secondary   = string
     public_subnet_cidrs           = string
-    public_subnet_cidr_secondary = string
+    public_subnet_cidr_secondary  = string
     private_subnet_cidrs          = string
     private_subnet_cidr_secondary = string
     enable_dns_hostnames          = bool
@@ -167,11 +167,11 @@ variable "portal" {
   description = "Configuration for the Patient Portal ECS service"
   type = object({
     container_image = string
-    task_cpu        = string  
-    task_memory     = string  
-    desired_count   = number 
-    min_capacity    = number 
-    max_capacity    = number 
+    task_cpu        = string
+    task_memory     = string
+    desired_count   = number
+    min_capacity    = number
+    max_capacity    = number
   })
 }
 

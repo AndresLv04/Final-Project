@@ -1,52 +1,58 @@
-
 #!/usr/bin/env python3
+# flake8: noqa: E501
 # ========================================
 # FILE: services/portal/app.py
 # Healthcare Lab Results Portal (Paciente)
 # ========================================
 
-from flask import Flask, render_template_string, jsonify, request, redirect, session, url_for
-from flask import redirect, url_for, current_app
+from flask import (
+    Flask,
+    render_template_string,
+    jsonify,
+    request,
+    redirect,
+    session,
+    url_for,
+    current_app,
+)
 from urllib.parse import urlencode
 import psycopg2
 import os
 import json
 import boto3
 import requests
-from datetime import datetime
 from functools import wraps
 from jose import jwt
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-change-in-production')
+app.secret_key = os.environ.get(
+    "FLASK_SECRET_KEY", "your-secret-key-change-in-production"
+)
 
 # Environment variables - Database
-DB_HOST = os.environ.get('DB_HOST')
-DB_PORT = os.environ.get('DB_PORT', '5432')
-DB_NAME = os.environ.get('DB_NAME')
-DB_USER = os.environ.get('DB_USER')
-DB_PASSWORD = os.environ.get('DB_PASSWORD')
+DB_HOST = os.environ.get("DB_HOST")
+DB_PORT = os.environ.get("DB_PORT", "5432")
+DB_NAME = os.environ.get("DB_NAME")
+DB_USER = os.environ.get("DB_USER")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 # Environment variables - Cognito
-COGNITO_DOMAIN = os.environ.get('COGNITO_DOMAIN')
-COGNITO_CLIENT_ID = os.environ.get('COGNITO_CLIENT_ID')
-COGNITO_USER_POOL_ID = os.environ.get('COGNITO_USER_POOL_ID')
-COGNITO_REGION = os.environ.get('COGNITO_REGION', 'us-east-1')
+COGNITO_DOMAIN = os.environ.get("COGNITO_DOMAIN")
+COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID")
+COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID")
+COGNITO_REGION = os.environ.get("COGNITO_REGION", "us-east-1")
 
 # URL pública del portal (la de CloudFront / ALB)
-APP_URL = os.environ.get('APP_URL', 'http://localhost:3000')
+APP_URL = os.environ.get("APP_URL", "http://localhost:3000")
 
 # URL a la que Cognito redirige después del logout
-LOGOUT_URL = os.environ.get('LOGOUT_URL', APP_URL)
+LOGOUT_URL = os.environ.get("LOGOUT_URL", APP_URL)
 
 PDF_LAMBDA_NAME = os.environ.get("PDF_LAMBDA_NAME")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 
 lambda_client = boto3.client("lambda", region_name=AWS_REGION)
-
-
-
 
 
 # ======================================================
@@ -107,10 +113,9 @@ def get_user_name_from_token():
         return "User"
 
 
-# ======================================================
 # TEMPLATES (login, dashboard, result detail)
-# ======================================================
-# --- LOGIN_TEMPLATE (idéntico al que ya tenías) ---
+
+# ---LOGIN_TEMPLATE
 LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -121,7 +126,7 @@ LOGIN_TEMPLATE = """
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         :root {
             --primary: #0d9488;
             --primary-hover: #0f766e;
@@ -132,7 +137,7 @@ LOGIN_TEMPLATE = """
             --text-muted: #a1a1aa;
             --accent: #14b8a6;
         }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--background);
@@ -140,13 +145,13 @@ LOGIN_TEMPLATE = """
             display: flex;
             color: var(--text);
         }
-        
+
         .login-wrapper {
             display: flex;
             width: 100%;
             min-height: 100vh;
         }
-        
+
         .login-left {
             flex: 1;
             display: flex;
@@ -154,7 +159,7 @@ LOGIN_TEMPLATE = """
             justify-content: center;
             padding: 40px;
         }
-        
+
         .login-right {
             flex: 1;
             background: linear-gradient(135deg, var(--primary) 0%, #047857 100%);
@@ -165,7 +170,7 @@ LOGIN_TEMPLATE = """
             position: relative;
             overflow: hidden;
         }
-        
+
         .login-right::before {
             content: '';
             position: absolute;
@@ -177,7 +182,7 @@ LOGIN_TEMPLATE = """
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        
+
         .login-right::after {
             content: '';
             position: absolute;
@@ -189,19 +194,19 @@ LOGIN_TEMPLATE = """
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        
+
         .login-container {
             max-width: 400px;
             width: 100%;
         }
-        
+
         .logo {
             display: flex;
             align-items: center;
             gap: 12px;
             margin-bottom: 48px;
         }
-        
+
         .logo-icon {
             width: 48px;
             height: 48px;
@@ -211,33 +216,33 @@ LOGIN_TEMPLATE = """
             align-items: center;
             justify-content: center;
         }
-        
+
         .logo-icon svg {
             width: 28px;
             height: 28px;
             color: white;
         }
-        
+
         .logo-text {
             font-size: 1.5rem;
             font-weight: 700;
             color: var(--text);
         }
-        
+
         h1 {
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 12px;
             line-height: 1.2;
         }
-        
+
         .subtitle {
             color: var(--text-muted);
             font-size: 1.1rem;
             margin-bottom: 40px;
             line-height: 1.6;
         }
-        
+
         .btn-login {
             display: flex;
             align-items: center;
@@ -255,24 +260,24 @@ LOGIN_TEMPLATE = """
             text-decoration: none;
             transition: all 0.2s ease;
         }
-        
+
         .btn-login:hover {
             background: var(--primary-hover);
             transform: translateY(-2px);
             box-shadow: 0 10px 40px rgba(13, 148, 136, 0.3);
         }
-        
+
         .btn-login svg {
             width: 20px;
             height: 20px;
         }
-        
+
         .features {
             margin-top: 48px;
             padding-top: 32px;
             border-top: 1px solid var(--card-border);
         }
-        
+
         .feature {
             display: flex;
             align-items: center;
@@ -281,41 +286,41 @@ LOGIN_TEMPLATE = """
             color: var(--text-muted);
             font-size: 0.95rem;
         }
-        
+
         .feature svg {
             width: 20px;
             height: 20px;
             color: var(--accent);
             flex-shrink: 0;
         }
-        
+
         .right-content {
             position: relative;
             z-index: 1;
             text-align: center;
             color: white;
         }
-        
+
         .right-content h2 {
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 16px;
         }
-        
+
         .right-content p {
             font-size: 1.1rem;
             opacity: 0.9;
             max-width: 400px;
             line-height: 1.6;
         }
-        
+
         .stats-preview {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             margin-top: 40px;
         }
-        
+
         .stat-item {
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
@@ -323,29 +328,29 @@ LOGIN_TEMPLATE = """
             border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.2);
         }
-        
+
         .stat-item h3 {
             font-size: 1.5rem;
             font-weight: 700;
         }
-        
+
         .stat-item p {
             font-size: 0.85rem;
             opacity: 0.8;
             margin-top: 4px;
         }
-        
+
         @media (max-width: 1024px) {
             .login-right {
                 display: none;
             }
         }
-        
+
         @media (max-width: 480px) {
             .login-left {
                 padding: 24px;
             }
-            
+
             h1 {
                 font-size: 2rem;
             }
@@ -364,17 +369,17 @@ LOGIN_TEMPLATE = """
                     </div>
                     <span class="logo-text">LabPortal</span>
                 </div>
-                
+
                 <h1>Welcome back</h1>
                 <p class="subtitle">Sign in to access patient lab results and manage healthcare data securely.</p>
-                
+
                 <a href="{{ cognito_login_url }}" class="btn-login">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
                     Sign in with Cognito
                 </a>
-                
+
                 <div class="features">
                     <div class="feature">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -397,7 +402,7 @@ LOGIN_TEMPLATE = """
                 </div>
             </div>
         </div>
-        
+
         <div class="login-right">
             <div class="right-content">
                 <h2>Healthcare Lab Portal</h2>
@@ -423,7 +428,7 @@ LOGIN_TEMPLATE = """
 </html>
 """
 
-# --- DASHBOARD_TEMPLATE (idéntico al tuyo pero con un pequeño cambio en result_id) ---
+# ---DASHBOARD_TEMPLATE
 DASHBOARD_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -434,7 +439,7 @@ DASHBOARD_TEMPLATE = """
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         :root {
             --primary: #0d9488;
             --primary-hover: #0f766e;
@@ -448,14 +453,14 @@ DASHBOARD_TEMPLATE = """
             --warning: #f59e0b;
             --danger: #ef4444;
         }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--background);
             min-height: 100vh;
             color: var(--text);
         }
-        
+
         .navbar {
             background: var(--card);
             border-bottom: 1px solid var(--card-border);
@@ -467,13 +472,13 @@ DASHBOARD_TEMPLATE = """
             top: 0;
             z-index: 100;
         }
-        
+
         .nav-left {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        
+
         .logo-icon {
             width: 40px;
             height: 40px;
@@ -483,25 +488,25 @@ DASHBOARD_TEMPLATE = """
             align-items: center;
             justify-content: center;
         }
-        
+
         .logo-icon svg {
             width: 24px;
             height: 24px;
             color: white;
         }
-        
+
         .logo-text {
             font-size: 1.25rem;
             font-weight: 700;
             color: var(--text);
         }
-        
+
         .nav-right {
             display: flex;
             align-items: center;
             gap: 16px;
         }
-        
+
         .user-info {
             display: flex;
             align-items: center;
@@ -528,7 +533,6 @@ DASHBOARD_TEMPLATE = """
             color: var(--text-muted);
         }
 
-        
         .user-avatar {
             width: 32px;
             height: 32px;
@@ -540,7 +544,7 @@ DASHBOARD_TEMPLATE = """
             font-weight: 600;
             font-size: 0.875rem;
         }
-        
+
         .btn-logout {
             display: flex;
             align-items: center;
@@ -556,45 +560,45 @@ DASHBOARD_TEMPLATE = """
             font-weight: 500;
             transition: all 0.2s;
         }
-        
+
         .btn-logout:hover {
             background: var(--danger);
             color: white;
             border-color: var(--danger);
         }
-        
+
         .btn-logout svg {
             width: 18px;
             height: 18px;
         }
-        
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 32px;
         }
-        
+
         .page-header {
             margin-bottom: 32px;
         }
-        
+
         .page-header h1 {
             font-size: 1.875rem;
             font-weight: 700;
             margin-bottom: 8px;
         }
-        
+
         .page-header p {
             color: var(--text-muted);
         }
-        
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 24px;
             margin-bottom: 32px;
         }
-        
+
         .stat-card {
             background: var(--card);
             border: 1px solid var(--card-border);
@@ -602,19 +606,19 @@ DASHBOARD_TEMPLATE = """
             padding: 24px;
             transition: all 0.2s;
         }
-        
+
         .stat-card:hover {
             border-color: var(--primary);
             transform: translateY(-2px);
         }
-        
+
         .stat-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 16px;
         }
-        
+
         .stat-icon {
             width: 48px;
             height: 48px;
@@ -623,47 +627,47 @@ DASHBOARD_TEMPLATE = """
             align-items: center;
             justify-content: center;
         }
-        
+
         .stat-icon.primary {
             background: rgba(13, 148, 136, 0.15);
             color: var(--accent);
         }
-        
+
         .stat-icon.success {
             background: rgba(34, 197, 94, 0.15);
             color: var(--success);
         }
-        
+
         .stat-icon.warning {
             background: rgba(245, 158, 11, 0.15);
             color: var(--warning);
         }
-        
+
         .stat-icon svg {
             width: 24px;
             height: 24px;
         }
-        
+
         .stat-value {
             font-size: 2.5rem;
             font-weight: 700;
             color: var(--text);
             line-height: 1;
         }
-        
+
         .stat-label {
             color: var(--text-muted);
             font-size: 0.875rem;
             margin-top: 8px;
         }
-        
+
         .results-section {
             background: var(--card);
             border: 1px solid var(--card-border);
             border-radius: 16px;
             overflow: hidden;
         }
-        
+
         .section-header {
             display: flex;
             justify-content: space-between;
@@ -671,7 +675,7 @@ DASHBOARD_TEMPLATE = """
             padding: 24px;
             border-bottom: 1px solid var(--card-border);
         }
-        
+
         .section-header h2 {
             font-size: 1.25rem;
             font-weight: 600;
@@ -679,22 +683,22 @@ DASHBOARD_TEMPLATE = """
             align-items: center;
             gap: 12px;
         }
-        
+
         .section-header h2 svg {
             width: 24px;
             height: 24px;
             color: var(--accent);
         }
-        
+
         .table-container {
             overflow-x: auto;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         th {
             text-align: left;
             padding: 16px 24px;
@@ -706,43 +710,43 @@ DASHBOARD_TEMPLATE = """
             letter-spacing: 0.05em;
             border-bottom: 1px solid var(--card-border);
         }
-        
+
         td {
             padding: 16px 24px;
             border-bottom: 1px solid var(--card-border);
             font-size: 0.875rem;
         }
-        
+
         tr:hover td {
             background: rgba(255,255,255,0.02);
         }
-        
+
         tr:last-child td {
             border-bottom: none;
         }
-        
+
         .result-id {
             font-family: 'SF Mono', 'Monaco', monospace;
             color: var(--text-muted);
             font-size: 0.8rem;
         }
-        
+
         .patient-info {
             display: flex;
             flex-direction: column;
             gap: 2px;
         }
-        
+
         .patient-name {
             font-weight: 500;
             color: var(--text);
         }
-        
+
         .patient-email {
             color: var(--text-muted);
             font-size: 0.8rem;
         }
-        
+
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -754,32 +758,32 @@ DASHBOARD_TEMPLATE = """
             text-transform: uppercase;
             letter-spacing: 0.03em;
         }
-        
+
         .status-badge::before {
             content: '';
             width: 6px;
             height: 6px;
             border-radius: 50%;
         }
-        
+
         .status-ready {
             background: rgba(34, 197, 94, 0.15);
             color: var(--success);
         }
-        
+
         .status-ready::before {
             background: var(--success);
         }
-        
+
         .status-pending {
             background: rgba(245, 158, 11, 0.15);
             color: var(--warning);
         }
-        
+
         .status-pending::before {
             background: var(--warning);
         }
-        
+
         .btn-view {
             display: inline-flex;
             align-items: center;
@@ -795,58 +799,58 @@ DASHBOARD_TEMPLATE = """
             font-weight: 500;
             transition: all 0.2s;
         }
-        
+
         .btn-view:hover {
             background: var(--primary-hover);
             transform: translateY(-1px);
         }
-        
+
         .btn-view svg {
             width: 16px;
             height: 16px;
         }
-        
+
         .empty-state {
             text-align: center;
             padding: 64px 24px;
             color: var(--text-muted);
         }
-        
+
         .empty-state svg {
             width: 64px;
             height: 64px;
             margin-bottom: 16px;
             opacity: 0.5;
         }
-        
+
         .empty-state h3 {
             font-size: 1.125rem;
             font-weight: 600;
             margin-bottom: 8px;
             color: var(--text);
         }
-        
+
         @media (max-width: 768px) {
             .navbar {
                 padding: 12px 16px;
             }
-            
+
             .container {
                 padding: 16px;
             }
-            
+
             .user-info {
                 display: none;
             }
-            
+
             .stats-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             th, td {
                 padding: 12px 16px;
             }
-            
+
             .patient-email {
                 display: none;
             }
@@ -881,13 +885,13 @@ DASHBOARD_TEMPLATE = """
             </a>
         </div>
     </nav>
-    
+
     <main class="container">
         <div class="page-header">
             <h1>Dashboard</h1>
             <p>Overview of lab results and patient data</p>
         </div>
-        
+
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-header">
@@ -900,7 +904,7 @@ DASHBOARD_TEMPLATE = """
                 <div class="stat-value">{{ total_results }}</div>
                 <div class="stat-label">Total Results</div>
             </div>
-            
+
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-icon success">
@@ -912,7 +916,7 @@ DASHBOARD_TEMPLATE = """
                 <div class="stat-value">{{ total_patients }}</div>
                 <div class="stat-label">Total Patients</div>
             </div>
-            
+
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-icon warning">
@@ -925,7 +929,7 @@ DASHBOARD_TEMPLATE = """
                 <div class="stat-label">Pending Results</div>
             </div>
         </div>
-        
+
         <div class="results-section">
             <div class="section-header">
                 <h2>
@@ -935,7 +939,7 @@ DASHBOARD_TEMPLATE = """
                     Recent Lab Results
                 </h2>
             </div>
-            
+
             {% if results %}
             <div class="table-container">
                 <table>
@@ -945,7 +949,7 @@ DASHBOARD_TEMPLATE = """
                             <th>Patient</th>
                             <th>Date</th>
                             <th>Status</th>
-                            <th>ownload</th>
+                            <th>Download</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -970,7 +974,6 @@ DASHBOARD_TEMPLATE = """
                                     Download
                                 </a>
                             </td>
-
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -991,7 +994,7 @@ DASHBOARD_TEMPLATE = """
 </html>
 """
 
-# --- RESULT_DETAIL_TEMPLATE (igual que el tuyo, lo reutilizamos mostrando un JSON con test_values) ---
+# ---RESULT_DETAIL_TEMPLATE
 RESULT_DETAIL_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -1002,7 +1005,7 @@ RESULT_DETAIL_TEMPLATE = """
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         :root {
             --primary: #0d9488;
             --primary-hover: #0f766e;
@@ -1015,14 +1018,14 @@ RESULT_DETAIL_TEMPLATE = """
             --success: #22c55e;
             --warning: #f59e0b;
         }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--background);
             min-height: 100vh;
             color: var(--text);
         }
-        
+
         .navbar {
             background: var(--card);
             border-bottom: 1px solid var(--card-border);
@@ -1034,13 +1037,13 @@ RESULT_DETAIL_TEMPLATE = """
             top: 0;
             z-index: 100;
         }
-        
+
         .nav-left {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        
+
         .logo-icon {
             width: 40px;
             height: 40px;
@@ -1050,25 +1053,25 @@ RESULT_DETAIL_TEMPLATE = """
             align-items: center;
             justify-content: center;
         }
-        
+
         .logo-icon svg {
             width: 24px;
             height: 24px;
             color: white;
         }
-        
+
         .logo-text {
             font-size: 1.25rem;
             font-weight: 700;
             color: var(--text);
         }
-        
+
         .container {
             max-width: 900px;
             margin: 0 auto;
             padding: 32px;
         }
-        
+
         .back-link {
             display: inline-flex;
             align-items: center;
@@ -1079,20 +1082,20 @@ RESULT_DETAIL_TEMPLATE = """
             margin-bottom: 24px;
             transition: color 0.2s;
         }
-        
+
         .back-link:hover {
             color: var(--accent);
         }
-        
+
         .back-link svg {
             width: 18px;
             height: 18px;
         }
-        
+
         .page-header {
             margin-bottom: 32px;
         }
-        
+
         .page-header h1 {
             font-size: 1.875rem;
             font-weight: 700;
@@ -1101,13 +1104,13 @@ RESULT_DETAIL_TEMPLATE = """
             align-items: center;
             gap: 12px;
         }
-        
+
         .page-header h1 svg {
             width: 32px;
             height: 32px;
             color: var(--accent);
         }
-        
+
         .detail-card {
             background: var(--card);
             border: 1px solid var(--card-border);
@@ -1115,13 +1118,13 @@ RESULT_DETAIL_TEMPLATE = """
             overflow: hidden;
             margin-bottom: 24px;
         }
-        
+
         .card-header {
             padding: 20px 24px;
             border-bottom: 1px solid var(--card-border);
             background: var(--background);
         }
-        
+
         .card-header h2 {
             font-size: 1rem;
             font-weight: 600;
@@ -1129,23 +1132,23 @@ RESULT_DETAIL_TEMPLATE = """
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
-        
+
         .card-body {
             padding: 24px;
         }
-        
+
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 24px;
         }
-        
+
         .info-item {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
-        
+
         .info-label {
             font-size: 0.75rem;
             font-weight: 500;
@@ -1153,13 +1156,13 @@ RESULT_DETAIL_TEMPLATE = """
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
-        
+
         .info-value {
             font-size: 1rem;
             color: var(--text);
             font-weight: 500;
         }
-        
+
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -1172,39 +1175,39 @@ RESULT_DETAIL_TEMPLATE = """
             letter-spacing: 0.03em;
             width: fit-content;
         }
-        
+
         .status-badge::before {
             content: '';
             width: 6px;
             height: 6px;
             border-radius: 50%;
         }
-        
+
         .status-ready {
             background: rgba(34, 197, 94, 0.15);
             color: var(--success);
         }
-        
+
         .status-ready::before {
             background: var(--success);
         }
-        
+
         .status-pending {
             background: rgba(245, 158, 11, 0.15);
             color: var(--warning);
         }
-        
+
         .status-pending::before {
             background: var(--warning);
         }
-        
+
         .json-container {
             background: var(--background);
             border-radius: 12px;
             padding: 20px;
             overflow-x: auto;
         }
-        
+
         .json-container pre {
             font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
             font-size: 0.85rem;
@@ -1214,16 +1217,16 @@ RESULT_DETAIL_TEMPLATE = """
             white-space: pre-wrap;
             word-wrap: break-word;
         }
-        
+
         @media (max-width: 768px) {
             .navbar {
                 padding: 12px 16px;
             }
-            
+
             .container {
                 padding: 16px;
             }
-            
+
             .info-grid {
                 grid-template-columns: 1fr;
             }
@@ -1241,7 +1244,7 @@ RESULT_DETAIL_TEMPLATE = """
             <span class="logo-text">LabPortal</span>
         </div>
     </nav>
-    
+
     <main class="container">
         <a href="/" class="back-link">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1249,7 +1252,7 @@ RESULT_DETAIL_TEMPLATE = """
             </svg>
             Back to Dashboard
         </a>
-        
+
         <div class="page-header">
             <h1>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1258,7 +1261,7 @@ RESULT_DETAIL_TEMPLATE = """
                 Lab Result Details
             </h1>
         </div>
-        
+
         <div class="detail-card">
             <div class="card-header">
                 <h2>Patient Information</h2>
@@ -1284,7 +1287,7 @@ RESULT_DETAIL_TEMPLATE = """
                 </div>
             </div>
         </div>
-        
+
         <div class="detail-card">
             <div class="card-header">
                 <h2>Lab Data</h2>
@@ -1301,10 +1304,9 @@ RESULT_DETAIL_TEMPLATE = """
 """
 
 
-# ======================================================
 # ROUTES
 # ======================================================
-@app.route('/login')
+@app.route("/login")
 def login():
     """Show login page"""
     cognito_login_url = (
@@ -1316,10 +1318,10 @@ def login():
     return render_template_string(LOGIN_TEMPLATE, cognito_login_url=cognito_login_url)
 
 
-@app.route('/callback')
+@app.route("/callback")
 def callback():
     """Handle Cognito callback"""
-    code = request.args.get('code')
+    code = request.args.get("code")
 
     if not code:
         return "Error: No authorization code", 400
@@ -1336,15 +1338,14 @@ def callback():
         response = requests.post(token_url, data=data)
         tokens = response.json()
 
-        if 'id_token' in tokens:
-            id_token = tokens['id_token']
-            session['user'] = {'id_token': id_token, 'authenticated': True}
-            return redirect(url_for('index'))
+        if "id_token" in tokens:
+            id_token = tokens["id_token"]
+            session["user"] = {"id_token": id_token, "authenticated": True}
+            return redirect(url_for("index"))
         else:
             return f"Error getting tokens: {tokens}", 400
     except Exception as e:
         return f"Error: {str(e)}", 500
-
 
 
 @app.route("/logout")
@@ -1353,12 +1354,13 @@ def logout():
 
     params = {
         "client_id": COGNITO_CLIENT_ID,
-        "logout_uri": LOGOUT_URL,  # ej: https://d2z9bd17xif50.cloudfront.net
+        "logout_uri": LOGOUT_URL,
     }
 
     # COGNITO_DOMAIN viene SIN protocolo, así que le agregamos https://
     url = f"https://{COGNITO_DOMAIN}/logout?{urlencode(params)}"
     return redirect(url)
+
 
 @app.route("/")
 @login_required
@@ -1557,6 +1559,7 @@ def result_detail(result_id):
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>", 500
 
+
 @app.route("/results/<int:result_id>/download")
 @login_required
 def result_download(result_id):
@@ -1609,7 +1612,7 @@ def result_download(result_id):
 
         status_code = lambda_result.get("statusCode", 500)
         if status_code != 200:
-            # devolvemos el cuerpo de la lambda (error) para debug
+            # Devolvemos el cuerpo de la lambda (error) para debug
             return (
                 f"Error generating PDF (Lambda status {status_code}): "
                 f"{lambda_result.get('body')}",
@@ -1632,8 +1635,9 @@ def result_download(result_id):
         current_app.logger.exception("Error generating/downloading PDF")
         return (f"Unexpected error generating PDF: {str(e)}", 500)
 
+
 # ======================================================
 # MAIN
 # ======================================================
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)

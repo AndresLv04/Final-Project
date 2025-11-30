@@ -17,13 +17,13 @@ resource "aws_cloudfront_distribution" "portal" {
   aliases = []
 
   origin {
-    domain_name = var.origin_domain_name   # <-- DNS del ALB que ya tienes (module.alb.alb_dns_name)
+    domain_name = var.origin_domain_name # <-- DNS del ALB que ya tienes (module.alb.alb_dns_name)
     origin_id   = "portal-alb-origin"
 
     custom_origin_config {
       http_port              = 80
       https_port             = 80
-      origin_protocol_policy = "http-only"   # ALB sólo expuesto en HTTP por ahora
+      origin_protocol_policy = "http-only" # ALB sólo expuesto en HTTP por ahora
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
@@ -49,7 +49,7 @@ resource "aws_cloudfront_distribution" "portal" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true   # usamos *.cloudfront.net, sin dominio propio
+    cloudfront_default_certificate = true # usamos *.cloudfront.net, sin dominio propio
   }
 
   tags = {

@@ -1,16 +1,16 @@
 locals {
   common_tags = {
-    Project = var.project_name
+    Project     = var.project_name
     Environment = var.environment
-    Owner = var.owner
-    ManagedBy = "Terraform"
+    Owner       = var.owner
+    ManagedBy   = "Terraform"
   }
 }
 
 //VPC Principal
 //Main VPC
 resource "aws_vpc" "main" {
-  cidr_block = var.vpc_cidr
+  cidr_block           = var.vpc_cidr
   enable_dns_hostnames = var.enable_dns_hostnames
   enable_dns_support   = var.enable_dns_support
 
@@ -21,7 +21,7 @@ resource "aws_vpc" "main" {
     }
   )
 }
-  
+
 // Internet Gateway para salida a Internet
 // Internet Gateway for Internet access
 resource "aws_internet_gateway" "main" {
@@ -46,14 +46,14 @@ resource "aws_eip" "nat" {
     }
   )
 
-  depends_on = [ aws_internet_gateway.main ]
+  depends_on = [aws_internet_gateway.main]
 }
 
 //Subred publica
 //Public subnet
 resource "aws_subnet" "public" {
-  vpc_id = aws_vpc.main.id
-  cidr_block = var.public_subnet_cidr
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.public_subnet_cidr
   availability_zone = var.availability_zone
 
   map_public_ip_on_launch = true
@@ -99,8 +99,8 @@ resource "aws_route_table_association" "public_secondary" {
 //Subred private
 //Private subnet
 resource "aws_subnet" "private" {
-  vpc_id = aws_vpc.main.id
-  cidr_block = var.private_subnet_cidr
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidr
   availability_zone = var.availability_zone
 
   map_public_ip_on_launch = false
@@ -119,8 +119,8 @@ resource "aws_subnet" "private" {
 //Segunda subred privada para RDS
 //Second private subnet for RDS
 resource "aws_subnet" "private_secondary" {
-  vpc_id = aws_vpc.main.id
-  cidr_block = var.private_subnet_cidr_secondary
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidr_secondary
   availability_zone = var.availability_zone_secondary
 
   map_public_ip_on_launch = false
@@ -146,9 +146,9 @@ resource "aws_route_table_association" "private_secondary" {
 // NAT Gateway en la subred pública
 // NAT Gateway in the public subnet
 resource "aws_nat_gateway" "main" {
-  count = var.enable_nat_gateway ? 1 : 0
+  count         = var.enable_nat_gateway ? 1 : 0
   allocation_id = aws_eip.nat[0].id
-  subnet_id = aws_subnet.public.id
+  subnet_id     = aws_subnet.public.id
 
   tags = merge(
     local.common_tags,
@@ -166,7 +166,7 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block = "0.0.0.0/0"        
+    cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
 
@@ -181,7 +181,7 @@ resource "aws_route_table" "public" {
 }
 # Associate Public Subnets with Public Route Table
 resource "aws_route_table_association" "public" {
-  subnet_id = aws_subnet.public.id
+  subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
 
@@ -194,7 +194,7 @@ resource "aws_route_table" "private" {
   dynamic "route" {
     for_each = var.enable_nat_gateway ? [1] : []
     content {
-      cidr_block = "0.0.0.0/0"
+      cidr_block     = "0.0.0.0/0"
       nat_gateway_id = aws_nat_gateway.main[0].id
     }
   }
@@ -209,6 +209,6 @@ resource "aws_route_table" "private" {
 }
 # Associate private Subnets with private route table
 resource "aws_route_table_association" "private" {
-  subnet_id = aws_subnet.private.id
+  subnet_id      = aws_subnet.private.id
   route_table_id = aws_route_table.private.id
 }

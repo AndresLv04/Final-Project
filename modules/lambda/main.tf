@@ -10,7 +10,7 @@ locals {
     Owner       = var.owner
     ManagedBy   = "Terraform"
   }
-  
+
   lambda_prefix = "${var.project_name}-${var.environment}"
 }
 

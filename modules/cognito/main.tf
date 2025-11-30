@@ -45,10 +45,10 @@ resource "aws_cognito_user_pool" "main" {
   }
 
   schema {
-    name                = "patient_id"
-    attribute_data_type = "String"
-    required            = false
-    mutable             = true
+    name                     = "patient_id"
+    attribute_data_type      = "String"
+    required                 = false
+    mutable                  = true
     developer_only_attribute = false
 
     string_attribute_constraints {
@@ -153,9 +153,9 @@ resource "aws_cognito_user_pool_client" "web" {
   logout_urls   = var.logout_urls
 
   # Token validity
-  id_token_validity      = 60    # 60 minutes
-  access_token_validity  = 60    # 60 minutes
-  refresh_token_validity = 30    # 30 days
+  id_token_validity      = 60 # 60 minutes
+  access_token_validity  = 60 # 60 minutes
+  refresh_token_validity = 30 # 30 days
 
   token_validity_units {
     id_token      = "minutes"

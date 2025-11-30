@@ -31,7 +31,7 @@ variable "vpc_cidr" {
 variable "allowed_cidr_blocks" {
   description = "CIDRs permitidos para acceso HTTPS al ALB (para restringir acceso)"
   type        = list(string)
-  default     = ["0.0.0.0/0"]  # Todo internet por defecto
+  default     = ["0.0.0.0/0"] # Todo internet por defecto
 }
 
 variable "enable_ssh_access" {

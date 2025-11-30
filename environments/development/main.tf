@@ -20,7 +20,7 @@ module "vpc" {
   availability_zone             = var.vpc.availability_zone
   availability_zone_secondary   = var.vpc.availability_zone_secondary
   public_subnet_cidr            = var.vpc.public_subnet_cidrs
-  public_subnet_cidr_secondary =  var.vpc.public_subnet_cidr_secondary
+  public_subnet_cidr_secondary  = var.vpc.public_subnet_cidr_secondary
   private_subnet_cidr           = var.vpc.private_subnet_cidrs
   private_subnet_cidr_secondary = var.vpc.private_subnet_cidr_secondary
   enable_dns_hostnames          = var.vpc.enable_dns_hostnames
@@ -414,9 +414,9 @@ module "alb" {
 module "cloudfront_portal" {
   source = "../../modules/cloudfront_portal"
 
-  project_name      = var.common.project_name
-  environment       = var.common.environment
-  origin_domain_name = module.alb.alb_dns_name   
+  project_name       = var.common.project_name
+  environment        = var.common.environment
+  origin_domain_name = module.alb.alb_dns_name
 }
 
 
@@ -443,11 +443,11 @@ module "ecs_portal" {
   max_capacity    = var.portal.max_capacity
 
   # ECS / networking
-  ecs_cluster_id   = module.ecs_worker.cluster_id     # <-- ajusta si tu módulo del cluster se llama distinto
-  ecs_cluster_name = module.ecs_worker.cluster_name   # idem
-  private_subnet_ids = [module.vpc.private_subnet_id, module.vpc.private_subnet_secondary_id ]
+  ecs_cluster_id           = module.ecs_worker.cluster_id   # <-- ajusta si tu módulo del cluster se llama distinto
+  ecs_cluster_name         = module.ecs_worker.cluster_name # idem
+  private_subnet_ids       = [module.vpc.private_subnet_id, module.vpc.private_subnet_secondary_id]
   portal_security_group_id = module.security_groups.all_security_group_ids.ecs_portal_sg_id
-  alb_target_group_arn     = module.alb.portal_target_group_arn  # <-- usa el output del TG del portal
+  alb_target_group_arn     = module.alb.portal_target_group_arn # <-- usa el output del TG del portal
 
   # Cognito
   cognito_user_pool_id = module.cognito.user_pool_id
@@ -461,7 +461,7 @@ module "ecs_portal" {
   logout_url   = module.cloudfront_portal.portal_url
 
   # Base de datos (RDS)
-  db_host     = module.rds.db_instance_address 
+  db_host     = module.rds.db_instance_address
   db_port     = module.rds.db_instance_port
   db_name     = module.rds.db_name
   db_user     = module.rds.db_username

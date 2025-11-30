@@ -13,7 +13,7 @@ resource "aws_security_group" "ecs_worker" {
   // Los workers NO reciben tráfico entrante (solo procesan desde SQS)
   // Por seguridad, no definimos ninguna regla ingress
 
-/*
+  /*
   REGLAS DE SALIDA
     Necesitan:
     - Acceder a RDS (PostgreSQL)

@@ -1,3 +1,7 @@
+# CI/CD Pipeline for the healthcare-lab-platform project.
+# NOTE: This workflow is configured in "academic mode".
+# Set ENABLE_REAL_DEPLOY to 'true' to allow real AWS deployments.
+
 name: CI/CD Pipeline
 
 on:
@@ -24,6 +28,8 @@ env:
   AWS_REGION: us-east-1
   TERRAFORM_VERSION: 1.6.0
   PYTHON_VERSION: 3.11
+  # When 'false', all AWS deployment steps are skipped (safe for public / academic use)
+  ENABLE_REAL_DEPLOY: 'false'
 
 jobs:
   # ===================================
@@ -32,41 +38,39 @@ jobs:
   validate:
     name: Validate Code
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-cov flake8 black
-      
+
       - name: Run Python linting
         run: |
-          # Check code style
-          flake8 services/ lambda/ --max-line-length=120 --exclude=venv,__pycache__
-          
-          # Check formatting
-          black --check services/ lambda/
-      
+          flake8 services/ modules/lambda/functions \
+            --max-line-length=120 --exclude=venv,__pycache__
+          black --check services/ modules/lambda/functions
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
-      
+
       - name: Terraform Format Check
         run: |
           terraform fmt -check -recursive
-      
+
       - name: Terraform Validate
         run: |
-          cd development
+          cd environments/development
           terraform init -backend=false
           terraform validate
 
@@ -77,26 +81,26 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     needs: validate
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install dependencies
         run: |
           pip install -r services/processor/requirements.txt
           pip install -r services/portal/requirements.txt
           pip install pytest pytest-cov
-      
+
       - name: Run Unit Tests
         run: |
-          pytest tests/unit/ -v --cov=services --cov=lambda --cov-report=xml
-      
+          pytest tests/unit/ -v --cov=services --cov-report=xml
+
       - name: Upload Coverage
         uses: codecov/codecov-action@v3
         with:
@@ -112,57 +116,66 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate, test]
     if: github.event_name == 'pull_request'
-    
+
     permissions:
       pull-requests: write
       contents: read
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
+      - name: Skip Terraform Plan (academic mode)
+        if: env.ENABLE_REAL_DEPLOY != 'true'
+        run: |
+          echo "ENABLE_REAL_DEPLOY=${ENABLE_REAL_DEPLOY}. Skipping real Terraform plan against AWS."
+
       - name: Configure AWS Credentials
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Setup Terraform
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
-      
+
       - name: Terraform Init
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
-          cd development
+          cd environments/development
           terraform init
-      
+
       - name: Terraform Plan
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         id: plan
         run: |
-          cd development
+          cd environments/development
           terraform plan -no-color -out=tfplan
         continue-on-error: true
-      
+
       - name: Comment PR with Plan
+        if: env.ENABLE_REAL_DEPLOY == 'true' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const output = `#### Terraform Plan 📖
-            
+
             <details><summary>Show Plan</summary>
-            
+
             \`\`\`terraform
             ${{ steps.plan.outputs.stdout }}
             \`\`\`
-            
+
             </details>
-            
+
             *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -178,91 +191,103 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
-    
+
     strategy:
       matrix:
-        service: [processor, portal]
-    
+        include:
+          - service: processor
+            ecr_repository: healthcare-lab-platform-dev-worker
+          - service: portal
+            ecr_repository: healthcare-lab-platform-dev-portal
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
+      - name: Skipping Docker build & push (academic mode)
+        if: env.ENABLE_REAL_DEPLOY != 'true'
+        run: |
+          echo "ENABLE_REAL_DEPLOY=${ENABLE_REAL_DEPLOY}. Skipping Docker build & push to ECR."
+
       - name: Configure AWS Credentials
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Login to Amazon ECR
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-      
+
       - name: Build, tag, and push image
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           cd services/${{ matrix.service }}
-          
-          # Build image
-          docker build -t $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:$IMAGE_TAG \
-                     $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:latest
-          
-          # Push image
-          docker push $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:$IMAGE_TAG
-          docker push $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:latest
-      
+
+          ECR_REPOSITORY=${{ matrix.ecr_repository }}
+          echo "Using repository: $ECR_REGISTRY/$ECR_REPOSITORY"
+
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+          docker tag \
+            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
       - name: Output image URI
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
-          echo "Image pushed: ${{ steps.login-ecr.outputs.registry }}/healthcare-lab-dev-${{ matrix.service }}:${{ github.sha }}"
+          echo "Image pushed: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repository }}:${{ github.sha }}"
 
   # ===================================
   # JOB 5: Package Lambda Functions
+  # (safe in academic mode: no AWS calls, solo empaquetado)
   # ===================================
   package-lambda:
     name: Package Lambda Functions
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
-    
+
     strategy:
       matrix:
-        function: [ingest, notify, pdf]
-    
+        function: [ingest, notify, pdf_generator]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Package Lambda
         run: |
-          cd lambda/${{ matrix.function }}
-          
-          # Install dependencies
+          cd modules/lambda/functions/${{ matrix.function }}
+
           pip install -r requirements.txt -t package/
-          
-          # Copy function code
           cp *.py package/
-          
-          # Create zip
+
           cd package
           zip -r ../function.zip .
           cd ..
-          
-          # Verify zip
+
           ls -lh function.zip
-      
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: lambda-${{ matrix.function }}
-          path: lambda/${{ matrix.function }}/function.zip
+          path: modules/lambda/functions/${{ matrix.function }}/function.zip
           retention-days: 7
 
   # ===================================
@@ -276,64 +301,93 @@ jobs:
     environment:
       name: staging
       url: https://staging.healthcarelab.com
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
+      - name: Skipping staging deployment (academic mode)
+        if: env.ENABLE_REAL_DEPLOY != 'true'
+        run: |
+          echo "ENABLE_REAL_DEPLOY=${ENABLE_REAL_DEPLOY}. Skipping real deploy to STAGING."
+
       - name: Configure AWS Credentials
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Setup Terraform
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
-      
+
       - name: Download Lambda artifacts
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         uses: actions/download-artifact@v4
         with:
           path: lambda-artifacts
-      
+
       - name: Deploy Lambda Functions
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
-          for function in ingest notify pdf; do
+          for function in ingest notify pdf_generator; do
+            case "$function" in
+              ingest)
+                LAMBDA_NAME="healthcare-lab-platform-dev-ingest"
+                ;;
+              notify)
+                LAMBDA_NAME="healthcare-lab-platform-dev-notify"
+                ;;
+              pdf_generator)
+                LAMBDA_NAME="healthcare-lab-platform-dev-pdf-generator"
+                ;;
+              *)
+                echo "Unknown function: $function"
+                exit 1
+                ;;
+            esac
+
+            echo "Updating Lambda function $LAMBDA_NAME"
             aws lambda update-function-code \
-              --function-name healthcare-lab-dev-${function} \
+              --function-name "$LAMBDA_NAME" \
               --zip-file fileb://lambda-artifacts/lambda-${function}/function.zip
           done
-      
+
       - name: Terraform Init
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
-          cd development
+          cd environments/development
           terraform init
-      
+
       - name: Terraform Apply
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
-          cd development
+          cd environments/development
           terraform apply -auto-approve
-      
+
       - name: Update ECS Services
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
-          # Force new deployment of ECS services
           aws ecs update-service \
-            --cluster healthcare-lab-dev-cluster \
-            --service healthcare-lab-dev-worker \
+            --cluster healthcare-lab-platform-dev-cluster \
+            --service healthcare-lab-platform-dev-worker \
             --force-new-deployment
-          
+
           aws ecs update-service \
-            --cluster healthcare-lab-dev-cluster \
-            --service healthcare-lab-dev-portal \
+            --cluster healthcare-lab-platform-dev-cluster \
+            --service healthcare-lab-platform-dev-portal \
             --force-new-deployment
-      
+
       - name: Wait for deployment
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
           aws ecs wait services-stable \
-            --cluster healthcare-lab-dev-cluster \
-            --services healthcare-lab-dev-worker healthcare-lab-dev-portal
+            --cluster healthcare-lab-platform-dev-cluster \
+            --services healthcare-lab-platform-dev-worker healthcare-lab-platform-dev-portal
 
   # ===================================
   # JOB 7: Deploy to Production
@@ -346,66 +400,52 @@ jobs:
     environment:
       name: production
       url: https://healthcarelab.com
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
+      - name: Skipping production deployment (academic mode)
+        if: env.ENABLE_REAL_DEPLOY != 'true'
+        run: |
+          echo "ENABLE_REAL_DEPLOY=${ENABLE_REAL_DEPLOY}. Skipping real deploy to PRODUCTION."
+
       - name: Configure AWS Credentials
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Setup Terraform
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
-      
+
       - name: Terraform Plan
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
-          cd production
+          cd environments/production
           terraform init
           terraform plan -out=tfplan
-      
+
       - name: Terraform Apply
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
-          cd production
+          cd environments/production
           terraform apply tfplan
-      
+
       - name: Update ECS Services
+        if: env.ENABLE_REAL_DEPLOY == 'true'
         run: |
           aws ecs update-service \
-            --cluster healthcare-lab-prod-cluster \
-            --service healthcare-lab-prod-worker \
-            --force-new-deployment
-          
-          aws ecs update-service \
-            --cluster healthcare-lab-prod-cluster \
-            --service healthcare-lab-prod-portal \
+            --cluster healthcare-lab-platform-prod-cluster \
+            --service healthcare-lab-platform-prod-worker \
             --force-new-deployment
 
-  # ===================================
-  # JOB 8: Notify
-  # ===================================
-  notify:
-    name: Notify Deployment
-    runs-on: ubuntu-latest
-    needs: [deploy-staging, deploy-production]
-    if: always()
-    
-    steps:
-      - name: Send Slack notification
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          text: |
-            Deployment Status: ${{ job.status }}
-            Branch: ${{ github.ref }}
-            Commit: ${{ github.sha }}
-            Author: ${{ github.actor }}
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+          aws ecs update-service \
+            --cluster healthcare-lab-platform-prod-cluster \
+            --service healthcare-lab-platform-prod-portal \
+            --force-new-deployment

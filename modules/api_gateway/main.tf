@@ -73,10 +73,10 @@ resource "aws_api_gateway_resource" "pdf" {
 # ============================================
 
 resource "aws_api_gateway_method" "ingest_post" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.ingest.id
-  http_method   = "POST"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.main.id
+  resource_id      = aws_api_gateway_resource.ingest.id
+  http_method      = "POST"
+  authorization    = "NONE"
   api_key_required = var.enable_api_key_required
 
   request_validator_id = aws_api_gateway_request_validator.body.id
@@ -105,10 +105,10 @@ resource "aws_lambda_permission" "api_gateway_ingest" {
 # ============================================
 
 resource "aws_api_gateway_method" "health_get" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.health.id
-  http_method   = "GET"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.main.id
+  resource_id      = aws_api_gateway_resource.health.id
+  http_method      = "GET"
+  authorization    = "NONE"
   api_key_required = false
 }
 
@@ -145,10 +145,10 @@ resource "aws_api_gateway_integration_response" "health" {
 
   response_templates = {
     "application/json" = jsonencode({
-      status       = "healthy"
-      service      = "Healthcare Lab API"
-      version      = "v1"
-      environment  = var.environment
+      status      = "healthy"
+      service     = "Healthcare Lab API"
+      version     = "v1"
+      environment = var.environment
     })
   }
 
@@ -160,10 +160,10 @@ resource "aws_api_gateway_integration_response" "health" {
 # ============================================
 
 resource "aws_api_gateway_method" "pdf_post" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.pdf.id
-  http_method   = "POST"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.main.id
+  resource_id      = aws_api_gateway_resource.pdf.id
+  http_method      = "POST"
+  authorization    = "NONE"
   api_key_required = var.enable_api_key_required
 }
 

@@ -4,10 +4,10 @@ Envía notificaciones por email cuando los resultados están listos.
 """
 
 import json
-import os
 import logging
-from typing import Dict, Any
+import os
 from datetime import datetime
+from typing import Any, Dict
 
 import boto3
 import psycopg2
@@ -31,7 +31,7 @@ DB_SECRET_ARN = os.environ["DB_SECRET_ARN"]  # ARN del secret en Secrets Manager
 
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "noreply@example.com")
 SES_TEMPLATE_NAME = os.environ.get("SES_TEMPLATE_NAME")  # opcional
-SES_CONFIG_SET = os.environ.get("SES_CONFIG_SET")        # opcional
+SES_CONFIG_SET = os.environ.get("SES_CONFIG_SET")  # opcional
 
 PORTAL_URL = os.environ.get("PORTAL_URL", "https://portal.example.com")
 
@@ -73,7 +73,7 @@ def lambda_handler(event, context):
     """
     try:
         logger.info("Lambda Notify iniciado")
-        logger.info(f"Event: {json.dumps(event)}")
+        logger.info("Event: %s", json.dumps(event))
 
         records = parse_event(event)
 
@@ -82,32 +82,28 @@ def lambda_handler(event, context):
             try:
                 result = process_notification(record)
                 results.append(result)
-            except Exception as e:
-                logger.error(
-                    f"Error procesando record: {str(e)}", exc_info=True
-                )
-                results.append({"success": False, "error": str(e)})
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Error procesando record: %s", str(exc), exc_info=True)
+                results.append({"success": False, "error": str(exc)})
 
-        logger.info(f"Procesados {len(results)} registros")
+        logger.info("Procesados %d registros", len(results))
 
         return {
             "statusCode": 200,
-            "body": json.dumps(
-                {"processed": len(results), "results": results}
-            ),
+            "body": json.dumps({"processed": len(results), "results": results}),
         }
 
-    except Exception as e:
-        logger.error(f"Error en lambda_handler: {str(e)}", exc_info=True)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Error en lambda_handler: %s", str(exc), exc_info=True)
         raise
 
 
 # --------------------------------------------------
 # PARSEO DE EVENTO
 # --------------------------------------------------
-def parse_event(event: Dict[str, Any]) -> list:
+def parse_event(event: Dict[str, Any]) -> list[Dict[str, Any]]:
     """Parsea el evento de SNS o invocación directa"""
-    records = []
+    records: list[Dict[str, Any]] = []
 
     # Si viene de SNS
     if "Records" in event:
@@ -137,8 +133,9 @@ def process_notification(data: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("Missing result_id or patient_id")
 
     logger.info(
-        f"Procesando notificación para result_id={result_id}, "
-        f"patient_id={patient_id}"
+        "Procesando notificación para result_id=%s, patient_id=%s",
+        result_id,
+        patient_id,
     )
 
     # 1. Obtener información del paciente desde RDS
@@ -171,7 +168,7 @@ def process_notification(data: Dict[str, Any]) -> Dict[str, Any]:
 # --------------------------------------------------
 # QUERIES A RDS
 # --------------------------------------------------
-def get_patient_info(patient_id: str) -> Dict[str, Any]:
+def get_patient_info(patient_id: str) -> Dict[str, Any] | None:
     """Obtiene información del paciente desde RDS"""
     try:
         conn = get_db_connection()
@@ -199,8 +196,8 @@ def get_patient_info(patient_id: str) -> Dict[str, Any]:
             "email": row[3],
         }
 
-    except Exception as e:
-        logger.error(f"Error querying RDS (patient): {str(e)}")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Error querying RDS (patient): %s", str(exc))
         raise
 
 
@@ -237,8 +234,8 @@ def get_result_info(result_id: str) -> Dict[str, Any]:
             "lab_name": row[3],
         }
 
-    except Exception as e:
-        logger.error(f"Error querying result info: {str(e)}")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Error querying result info: %s", str(exc))
         # No fallar si no podemos obtener info del resultado
         return {
             "result_id": result_id,
@@ -252,10 +249,11 @@ def get_result_info(result_id: str) -> Dict[str, Any]:
 # ENVÍO DE EMAIL – TEMPLATE SES
 # --------------------------------------------------
 def send_email_with_template(
-    patient_info: Dict[str, Any], result_info: Dict[str, Any]
+    patient_info: Dict[str, Any],
+    result_info: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
-    Envía email usando un template de SES (TEST 2).
+    Envía email usando un template de SES.
     Usa la plantilla creada por Terraform: SES_TEMPLATE_NAME.
     """
 
@@ -266,19 +264,21 @@ def send_email_with_template(
 
     template_data = {
         "first_name": patient_info["first_name"],
-        "test_type": result_info.get("test_type", "Lab Result").replace("_", " ").title(),
+        "test_type": result_info.get("test_type", "Lab Result")
+        .replace("_", " ")
+        .title(),
         "test_date": result_info.get("test_date", ""),
         "lab_name": result_info.get("lab_name", "N/A"),
         "result_id": result_info["result_id"],
     }
 
     try:
-        kwargs = dict(
-            Source=SENDER_EMAIL,
-            Destination={"ToAddresses": [recipient]},
-            Template=SES_TEMPLATE_NAME,
-            TemplateData=json.dumps(template_data),
-        )
+        kwargs: Dict[str, Any] = {
+            "Source": SENDER_EMAIL,
+            "Destination": {"ToAddresses": [recipient]},
+            "Template": SES_TEMPLATE_NAME,
+            "TemplateData": json.dumps(template_data),
+        }
 
         # Si definiste SES_CONFIG_SET en Terraform, lo usamos
         if SES_CONFIG_SET:
@@ -286,13 +286,11 @@ def send_email_with_template(
 
         response = ses_client.send_templated_email(**kwargs)
 
-        logger.info(
-            f"Templated email sent. MessageId: {response['MessageId']}"
-        )
+        logger.info("Templated email sent. MessageId: %s", response["MessageId"])
         return response
 
-    except Exception as e:
-        logger.error(f"Error sending templated email: {str(e)}")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Error sending templated email: %s", str(exc))
         raise
 
 
@@ -300,7 +298,8 @@ def send_email_with_template(
 # ENVÍO DE EMAIL – SIMPLE (fallback)
 # --------------------------------------------------
 def send_email(
-    patient_info: Dict[str, Any], result_info: Dict[str, Any]
+    patient_info: Dict[str, Any],
+    result_info: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Envía email 'plano' usando SES (fallback si no hay template)."""
 
@@ -372,9 +371,9 @@ Healthcare Lab Platform
     """.strip()
 
     try:
-        SOURCE = f'"Healthcare Lab Platform" <{SENDER_EMAIL}>'
+        source_address = f'"Healthcare Lab Platform" <{SENDER_EMAIL}>'
         response = ses_client.send_email(
-            Source=SOURCE,
+            Source=source_address,
             Destination={"ToAddresses": [recipient]},
             Message={
                 "Subject": {"Data": subject, "Charset": "UTF-8"},
@@ -385,13 +384,11 @@ Healthcare Lab Platform
             },
         )
 
-        logger.info(
-            f"Email sent successfully. MessageId: {response['MessageId']}"
-        )
+        logger.info("Email sent successfully. MessageId: %s", response["MessageId"])
         return response
 
-    except Exception as e:
-        logger.error(f"Error sending email: {str(e)}")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Error sending email: %s", str(exc))
         raise
 
 
@@ -399,8 +396,10 @@ Healthcare Lab Platform
 # AUDIT LOG (OPCIONAL)
 # --------------------------------------------------
 def log_notification(
-    result_id: str, patient_id: str, email_result: Dict[str, Any]
-):
+    result_id: str,
+    patient_id: str,
+    email_result: Dict[str, Any],
+) -> None:
     """Registra la notificación en la base de datos (opcional)"""
     try:
         conn = get_db_connection()
@@ -437,6 +436,6 @@ def log_notification(
 
         logger.info("Notification logged to database")
 
-    except Exception as e:
-        logger.warning(f"Could not log notification: {str(e)}")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not log notification: %s", str(exc))
         # No fallar si no podemos loggear

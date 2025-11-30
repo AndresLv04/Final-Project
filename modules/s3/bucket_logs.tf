@@ -11,7 +11,7 @@ locals {
 
   // Nombre del bucket principal
   data_bucket_name = "${var.project_name}-${var.environment}-data"
-  
+
   // Nombre del bucket de logs
   logs_bucket_name = "${var.project_name}-${var.environment}-logs"
 }
@@ -47,7 +47,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"  # SSE-S3 para logs
+      sse_algorithm = "AES256" # SSE-S3 para logs
     }
   }
 }

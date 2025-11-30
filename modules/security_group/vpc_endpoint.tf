@@ -14,7 +14,7 @@ resource "aws_security_group" "vpc_endpoints" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]  // Toda la VPC
+    cidr_blocks = [var.vpc_cidr] // Toda la VPC
   }
 
   // REGLAS DE SALIDA

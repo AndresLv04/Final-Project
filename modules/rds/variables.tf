@@ -33,7 +33,7 @@ variable "db_name" {
   description = "Nombre de la base de datos"
   type        = string
   default     = "healthcaredb"
-  
+
   validation {
     condition     = can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_name))
     error_message = "El nombre debe empezar con letra y solo contener letras, números y guiones bajos."
@@ -49,7 +49,7 @@ variable "db_password" {
   description = "Contraseña del usuario master"
   type        = string
   sensitive   = true
-  
+
   validation {
     condition     = length(var.db_password) >= 16
     error_message = "La contraseña debe tener al menos 16 caracteres."
@@ -102,12 +102,12 @@ variable "backup_retention_period" {
 variable "backup_window" {
   description = "Ventana de backup (UTC)"
   type        = string
-  default     = "03:00-04:00"  # 3-4 AM UTC
+  default     = "03:00-04:00" # 3-4 AM UTC
 }
 variable "maintenance_window" {
   description = "Ventana de mantenimiento (UTC)"
   type        = string
-  default     = "sun:04:00-sun:05:00"  # Domingos 4-5 AM UTC
+  default     = "sun:04:00-sun:05:00" # Domingos 4-5 AM UTC
 }
 variable "preferred_backup_window" {
   description = "Ventana preferida para backups automáticos"
@@ -119,7 +119,7 @@ variable "preferred_backup_window" {
 variable "db_multi_az" {
   description = "Habilitar Multi-AZ (alta disponibilidad)"
   type        = bool
-  default     = false  # false en dev para ahorrar costos
+  default     = false # false en dev para ahorrar costos
 }
 
 // Monitoring
@@ -143,12 +143,12 @@ variable "performance_insights_retention_period" {
 variable "deletion_protection" {
   description = "Protección contra eliminación accidental"
   type        = bool
-  default     = false  // false en dev, true en prod
+  default     = false // false en dev, true en prod
 }
 variable "skip_final_snapshot" {
   description = "Saltar snapshot final al eliminar"
   type        = bool
-  default     = true  // true en dev, false en prod
+  default     = true // true en dev, false en prod
 }
 variable "final_snapshot_identifier" {
   description = "Nombre del snapshot final"
@@ -168,7 +168,7 @@ variable "parameter_family" {
 variable "apply_immediately" {
   description = "Aplicar cambios inmediatamente (vs siguiente ventana)"
   type        = bool
-  default     = false 
+  default     = false
 }
 
 # Monitoring Alarms

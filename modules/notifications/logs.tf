@@ -20,10 +20,10 @@ resource "aws_cloudwatch_metric_alarm" "ses_bounces" {
   alarm_name          = "${var.project_name}-${var.environment}-ses-high-bounces"
   alarm_description   = "SES bounce rate is too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 1
-  threshold          = 5  # 5 bounces
-  
+  threshold          = 5 # 5 bounces
+
   metric_name = "Reputation.BounceRate"
   namespace   = "AWS/SES"
   period      = 300
@@ -41,10 +41,10 @@ resource "aws_cloudwatch_metric_alarm" "ses_complaints" {
   alarm_name          = "${var.project_name}-${var.environment}-ses-high-complaints"
   alarm_description   = "SES complaint rate is too high"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 1
-  threshold          = 0.1  # 0.1% complaint rate
-  
+  threshold          = 0.1 # 0.1% complaint rate
+
   metric_name = "Reputation.ComplaintRate"
   namespace   = "AWS/SES"
   period      = 300
@@ -60,10 +60,10 @@ resource "aws_cloudwatch_metric_alarm" "sns_failed" {
   alarm_name          = "${var.project_name}-${var.environment}-sns-failed-notifications"
   alarm_description   = "SNS notifications are failing"
   comparison_operator = "GreaterThanThreshold"
-  
+
   evaluation_periods = 1
   threshold          = 5
-  
+
   metric_name = "NumberOfNotificationsFailed"
   namespace   = "AWS/SNS"
   period      = 300

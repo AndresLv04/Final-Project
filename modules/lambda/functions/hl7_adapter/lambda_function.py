@@ -1,9 +1,10 @@
 import json
-import os
-import boto3
 import logging
+import os
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
+import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -14,6 +15,7 @@ INGEST_FUNCTION_NAME = os.environ["INGEST_FUNCTION_NAME"]
 LAB_ID_DEFAULT = os.environ.get("LAB_ID", "LAB002")
 LAB_NAME_DEFAULT = os.environ.get("LAB_NAME", "LabCorp")
 
+
 def lambda_handler(event, context):
     """
     Adapter HL7 -> JSON canónico para Lambda Ingest.
@@ -22,7 +24,7 @@ def lambda_handler(event, context):
       - Invocación directa con 'hl7_message' en el body.
     """
     logger.info("HL7 adapter started")
-    logger.info(f"Event: {json.dumps(event)}")
+    logger.info("Event: %s", json.dumps(event))
 
     # 1) Obtener el texto HL7
     hl7_text = extract_hl7_from_event(event)
@@ -37,15 +39,21 @@ def lambda_handler(event, context):
         Payload=json.dumps(normalized).encode("utf-8"),
     )
 
-    logger.info(f"Invoked ingest function: {INGEST_FUNCTION_NAME}, response: {response}")
+    logger.info(
+        "Invoked ingest function: %s, response: %s",
+        INGEST_FUNCTION_NAME,
+        response,
+    )
 
     return {
         "statusCode": 202,
-        "body": json.dumps({
-            "status": "accepted",
-            "message": "HL7 received, normalized and sent to ingest",
-            "ingest_function": INGEST_FUNCTION_NAME
-        })
+        "body": json.dumps(
+            {
+                "status": "accepted",
+                "message": "HL7 received, normalized and sent to ingest",
+                "ingest_function": INGEST_FUNCTION_NAME,
+            }
+        ),
     }
 
 
@@ -68,14 +76,14 @@ def extract_hl7_from_event(event: Dict[str, Any]) -> str:
         s3 = boto3.client("s3")
         obj = s3.get_object(Bucket=bucket, Key=key)
         body = obj["Body"].read().decode("utf-8")
-        logger.info(f"Read HL7 file from s3://{bucket}/{key}")
+        logger.info("Read HL7 file from s3://%s/%s", bucket, key)
         return body
 
     raise ValueError("No HL7 message found in event")
 
 
 def parse_hl7_to_json(hl7_text: str) -> Dict[str, Any]:
-    """
+    r"""
     Parseo MUY simple para el ejemplo:
 
     MSH|^~\&|LABCORP|LAB002|PORTAL|SYSTEM|20240115103000||ORU^R01|MSG001|P|2.5
@@ -83,17 +91,16 @@ def parse_hl7_to_json(hl7_text: str) -> Dict[str, Any]:
     OBR|1||20240115-001|CBC^Complete Blood Count
     OBX|1|NM|WBC^White Blood Cell Count||7.5|10^3/uL|4.5-11.0|N|||F
     """
-
-    lines = [l.strip() for l in hl7_text.splitlines() if l.strip()]
+    lines = [line.strip() for line in hl7_text.splitlines() if line.strip()]
     segments = {line.split("|")[0]: line.split("|") for line in lines}
 
     # --- MSH ---
     msh = segments.get("MSH", [])
-    sending_app  = msh[2] if len(msh) > 2 else ""
-    sending_fac  = msh[3] if len(msh) > 3 else LAB_ID_DEFAULT
-    ts_str       = msh[6] if len(msh) > 6 else ""  # 20240115103000
+    sending_app = msh[2] if len(msh) > 2 else ""
+    sending_fac = msh[3] if len(msh) > 3 else LAB_ID_DEFAULT
+    ts_str = msh[6] if len(msh) > 6 else ""  # 20240115103000
 
-    test_datetime_iso = None
+    test_datetime_iso: str | None = None
     if ts_str:
         try:
             dt = datetime.strptime(ts_str, "%Y%m%d%H%M%S")
@@ -152,18 +159,21 @@ def parse_hl7_to_json(hl7_text: str) -> Dict[str, Any]:
         except (ValueError, TypeError):
             numeric_value = None
 
-        results.append({
-            "test_code": test_code,
-            "test_name": test_name,
-            "value": numeric_value,
-            "unit": unit,
-            "reference_range": ref_range,
-            "is_abnormal": is_abnormal,
-            "severity": severity,
-        })
+        results.append(
+            {
+                "test_code": test_code,
+                "test_name": test_name,
+                "value": numeric_value,
+                "unit": unit,
+                "reference_range": ref_range,
+                "is_abnormal": is_abnormal,
+                "severity": severity,
+            }
+        )
 
     normalized: Dict[str, Any] = {
         "patient_id": patient_id,
+        "patient_name": patient_name,
         "lab_id": sending_fac or LAB_ID_DEFAULT,
         "lab_name": LAB_NAME_DEFAULT or sending_app,
         "test_type": test_type,
@@ -171,5 +181,5 @@ def parse_hl7_to_json(hl7_text: str) -> Dict[str, Any]:
         "results": results,
     }
 
-    logger.info(f"Normalized HL7 to JSON: {json.dumps(normalized)}")
+    logger.info("Normalized HL7 to JSON: %s", json.dumps(normalized))
     return normalized
