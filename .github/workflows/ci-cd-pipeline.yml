@@ -49,11 +49,8 @@ jobs:
 
       - name: Run Python linting
         run: |
-          # Check code style (services + lambda functions)
           flake8 services/ modules/lambda/functions \
             --max-line-length=120 --exclude=venv,__pycache__
-
-          # Check formatting
           black --check services/ modules/lambda/functions
 
       - name: Setup Terraform
@@ -182,7 +179,11 @@ jobs:
 
     strategy:
       matrix:
-        service: [processor, portal]
+        include:
+          - service: processor
+            ecr_repository: healthcare-lab-platform-dev-worker
+          - service: portal
+            ecr_repository: healthcare-lab-platform-dev-portal
 
     steps:
       - name: Checkout code
@@ -206,39 +207,21 @@ jobs:
         run: |
           cd services/${{ matrix.service }}
 
-          # Seleccionar el repositorio correcto según el servicio
-          if [ "${{ matrix.service }}" = "processor" ]; then
-            # Repo REAL en ECR para el worker
-            ECR_REPOSITORY=healthcare-lab-platform-dev-worker
-          else
-            # Para portal, asumimos que el repo es healthcare-lab-dev-portal
-            ECR_REPOSITORY=healthcare-lab-dev-${{ matrix.service }}
-          fi
-
+          ECR_REPOSITORY=${{ matrix.ecr_repository }}
           echo "Usando repositorio: $ECR_REGISTRY/$ECR_REPOSITORY"
 
-          # Build image
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
           docker tag \
             $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-          # Push image
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-
       - name: Output image URI
         run: |
-          if [ "${{ matrix.service }}" = "processor" ]; then
-            ECR_REPOSITORY=healthcare-lab-platform-dev-worker
-          else
-            ECR_REPOSITORY=healthcare-lab-dev-${{ matrix.service }}
-          fi
-
-          echo "Image pushed: ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:${{ github.sha }}"
-
+          echo "Image pushed: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repository }}:${{ github.sha }}"
 
   # ===================================
   # JOB 5: Package Lambda Functions
@@ -266,18 +249,13 @@ jobs:
         run: |
           cd modules/lambda/functions/${{ matrix.function }}
 
-          # Install dependencies
           pip install -r requirements.txt -t package/
-
-          # Copy function code
           cp *.py package/
 
-          # Create zip
           cd package
           zip -r ../function.zip .
           cd ..
 
-          # Verify zip
           ls -lh function.zip
 
       - name: Upload artifact
@@ -340,7 +318,6 @@ jobs:
 
       - name: Update ECS Services
         run: |
-          # Force new deployment of ECS services
           aws ecs update-service \
             --cluster healthcare-lab-dev-cluster \
             --service healthcare-lab-dev-worker \
@@ -407,3 +384,4 @@ jobs:
             --cluster healthcare-lab-prod-cluster \
             --service healthcare-lab-prod-portal \
             --force-new-deployment
+            
