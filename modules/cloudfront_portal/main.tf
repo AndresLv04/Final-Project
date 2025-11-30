@@ -20,7 +20,7 @@ resource "aws_cloudfront_distribution" "portal" {
 
   # Origin pointing to the ALB
   origin {
-    domain_name = var.origin_domain_name  # ALB DNS (module.alb.alb_dns_name)
+    domain_name = var.origin_domain_name # ALB DNS (module.alb.alb_dns_name)
     origin_id   = "portal-alb-origin"
     origin_path = var.origin_path
 

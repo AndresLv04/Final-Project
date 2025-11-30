@@ -13,8 +13,8 @@ resource "aws_lambda_function" "pdf_generator" {
   handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.lambda_pdf.output_base64sha256
   runtime          = var.lambda_runtime
-  timeout          = 300   # 5 minutes
-  memory_size      = 1024  # 1 GB for PDF generation
+  timeout          = 300  # 5 minutes
+  memory_size      = 1024 # 1 GB for PDF generation
 
   layers = [aws_lambda_layer_version.psycopg2.arn]
 

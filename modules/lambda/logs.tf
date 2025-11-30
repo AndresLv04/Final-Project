@@ -145,7 +145,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_pdf_duration" {
   comparison_operator = "GreaterThanThreshold"
 
   evaluation_periods = 2
-  threshold          = 60000  # 60 seconds in ms
+  threshold          = 60000 # 60 seconds in ms
 
   metric_name = "Duration"
   namespace   = "AWS/Lambda"
