@@ -1,6 +1,4 @@
-
-// RDS MODULE - OUTPUTS
-// Connection Info
+# RDS instance identifiers
 output "db_instance_id" {
   description = "ID de la instancia RDS"
   value       = aws_db_instance.main.id
@@ -11,6 +9,7 @@ output "db_instance_arn" {
   value       = aws_db_instance.main.arn
 }
 
+# Connection details
 output "db_instance_endpoint" {
   description = "Endpoint de conexión (host:port)"
   value       = aws_db_instance.main.endpoint
@@ -37,7 +36,7 @@ output "db_username" {
   sensitive   = true
 }
 
-# Resource Names
+# RDS resource names
 output "db_subnet_group_name" {
   description = "Nombre del subnet group"
   value       = aws_db_subnet_group.main.name
@@ -48,13 +47,13 @@ output "parameter_group_name" {
   value       = aws_db_parameter_group.main.name
 }
 
-# Monitoring
+# Monitoring role
 output "monitoring_role_arn" {
   description = "ARN del IAM role de monitoring"
   value       = aws_iam_role.rds_monitoring.arn
 }
 
-# Connection String
+# PostgreSQL connection string (masked password)
 output "connection_string" {
   description = "String de conexión PostgreSQL"
   value       = "postgresql://${aws_db_instance.main.username}:***@${aws_db_instance.main.address}:${aws_db_instance.main.port}/${aws_db_instance.main.db_name}?sslmode=require"

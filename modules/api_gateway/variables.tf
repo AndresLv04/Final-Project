@@ -1,8 +1,4 @@
-# ============================================
-# API GATEWAY MODULE - VARIABLES
-# ============================================
-
-# Variables comunes
+# Common project variables
 variable "project_name" {
   description = "Nombre del proyecto"
   type        = string
@@ -18,7 +14,7 @@ variable "owner" {
   type        = string
 }
 
-# Lambda Functions
+# Lambda functions for API integration
 variable "lambda_ingest_invoke_arn" {
   description = "ARN de invocación de Lambda Ingest"
   type        = string
@@ -39,7 +35,7 @@ variable "lambda_pdf_function_name" {
   type        = string
 }
 
-# API Configuration
+# API throttling and quota
 variable "api_throttle_rate_limit" {
   description = "Requests por segundo"
   type        = number
@@ -58,12 +54,14 @@ variable "api_quota_limit" {
   default     = 10000
 }
 
+# API key requirement
 variable "enable_api_key_required" {
   description = "Requerir API Key"
   type        = bool
   default     = true
 }
 
+# Access logs configuration
 variable "enable_access_logs" {
   description = "Habilitar access logs"
   type        = bool
@@ -76,14 +74,14 @@ variable "log_retention_days" {
   default     = 7
 }
 
-# CORS
+# CORS configuration
 variable "cors_allow_origins" {
   description = "Orígenes permitidos para CORS"
   type        = list(string)
   default     = ["*"]
 }
 
-# CloudWatch Alarms
+# CloudWatch alarms SNS topic
 variable "alarm_sns_topic_arn" {
   description = "ARN del SNS topic para alarmas"
   type        = string

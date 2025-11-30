@@ -1,74 +1,76 @@
-//Variables comunes
+# Common variables
 variable "project_name" {
-  description = "Nombre del proyecto"
-  type        = string
-}
-variable "environment" {
-  description = "Ambiente (dev, staging, prod)"
-  type        = string
-}
-variable "owner" {
-  description = "Dueño del proyecto"
+  description = "Project name"
   type        = string
 }
 
-//Variables de configuración S3
+variable "environment" {
+  description = "Environment (dev, staging, prod)"
+  type        = string
+}
+
+variable "owner" {
+  description = "Project owner"
+  type        = string
+}
+
+# S3 configuration flags
 variable "enable_versioning" {
-  description = "Habilitar versionado en el bucket S3"
+  description = "Enable versioning on S3 buckets"
   type        = bool
   default     = true
 }
 
 variable "lifecycle_rules_enabled" {
-  description = "Habilitar reglas de ciclo de vida en el bucket S3"
+  description = "Enable lifecycle rules on the data bucket"
   type        = bool
   default     = true
 }
 
 variable "days_until_transition" {
-  description = "Número de días hasta la transición a almacenamiento Glacier"
+  description = "Number of days until transition to Glacier storage"
   type        = number
   default     = 90
 }
 
 variable "days_to_glacier" {
-  description = "Número de días para mantener los objetos en almacenamiento Glacier"
+  description = "Number of days to keep objects before moving to Glacier"
   type        = number
   default     = 180
 }
 
 variable "days_to_expire" {
-  description = "Días para eliminar objetos (0 = nunca)"
+  description = "Days before expiring objects (0 = never expires)"
   type        = number
   default     = 0
 }
 
 variable "days_to_transition_ia" {
-  description = "Días para mover a Infrequent Access"
+  description = "Days before moving objects to Infrequent Access"
   type        = number
   default     = 90
 }
 
 variable "enable_encryption" {
-  description = "Habilitar encriptación en reposo"
+  description = "Enable encryption at rest for S3 objects"
   type        = bool
   default     = true
 }
 
 variable "kms_key_id" {
-  description = "ID de la clave KMS para encriptación (si enable_encryption es true)"
+  description = "KMS key ID for bucket encryption (null to use S3 managed keys)"
   type        = string
   default     = null
 }
 
 variable "block_public_access" {
-  description = "Bloquea todo el acceso publico"
+  description = "Block all public access to the data bucket"
   type        = bool
   default     = true
 }
 
 variable "enable_access_logging" {
-  description = "Habilitar logs de acceso"
+  description = "Enable server access logging for the data bucket"
   type        = bool
   default     = true
 }

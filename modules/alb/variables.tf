@@ -1,5 +1,4 @@
-
-# Variables comunes
+# Common variables (project metadata)
 variable "project_name" {
   description = "Nombre del proyecto"
   type        = string
@@ -15,7 +14,7 @@ variable "owner" {
   type        = string
 }
 
-
+# Networking variables
 variable "vpc_id" {
   type        = string
   description = "ID de la VPC donde se desplegará el ALB y el target group."
@@ -31,10 +30,7 @@ variable "alb_security_group_id" {
   description = "ID del Security Group asociado al Application Load Balancer."
 }
 
-# ===================================
-# Configuración del ALB
-# ===================================
-
+# ALB configuration
 variable "enable_deletion_protection" {
   type        = bool
   description = "Habilita o deshabilita la protección contra borrado del ALB."
@@ -64,10 +60,7 @@ variable "enable_stickiness" {
   default     = false
 }
 
-# ===================================
-# SSL / HTTPS
-# ===================================
-
+# SSL / HTTPS configuration
 variable "certificate_arn" {
   type        = string
   description = "ARN del certificado ACM para HTTPS. Si está vacío, no se crea el listener HTTPS."
@@ -80,12 +73,7 @@ variable "ssl_policy" {
   default     = "ELBSecurityPolicy-2016-08"
 }
 
-# ===================================
-# Logs y monitoreo
-# ===================================
-
-# --- Access Logs en S3 ---
-
+# Access logs configuration (S3)
 variable "access_logs_bucket" {
   type        = string
   description = "Nombre del bucket S3 donde se almacenarán los access logs del ALB."
@@ -98,25 +86,14 @@ variable "enable_access_logs" {
   default     = false
 }
 
-# --- CloudWatch Logs para ALB ---
-
+# CloudWatch log group for ALB (optional)
 variable "enable_cloudwatch_logs" {
   type        = bool
   description = "Indica si se crea el CloudWatch Log Group para el ALB."
   default     = false
 }
 
-# Si quisieras parametrizar la retención en lugar de dejarla fija en 7 días:
-# variable "alb_log_retention_in_days" {
-#   type        = number
-#   description = "Días de retención de logs en CloudWatch para el ALB."
-#   default     = 7
-# }
-
-# ===================================
-# DNS (Route53) y WAF
-# ===================================
-
+# DNS (Route53) configuration
 variable "route53_zone_id" {
   type        = string
   description = "ID de la zona hospedada de Route53 donde se creará el registro A del ALB. Vacío para no crear registro."
@@ -129,6 +106,7 @@ variable "domain_name" {
   default     = ""
 }
 
+# WAFv2 Web ACL configuration
 variable "waf_web_acl_arn" {
   type        = string
   description = "ARN del WAFv2 Web ACL a asociar con el ALB. Vacío para no asociar WAF."

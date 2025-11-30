@@ -1,12 +1,11 @@
-# 6. LAMBDA FUNCTION: PDF GENERATOR
-# ============================================
-
+# Package Lambda PDF generator code
 data "archive_file" "lambda_pdf" {
   type        = "zip"
   source_dir  = "${path.module}/functions/pdf_generator"
   output_path = "${path.module}/builds/pdf_generator.zip"
 }
 
+# Lambda function: PDF generator
 resource "aws_lambda_function" "pdf_generator" {
   filename         = data.archive_file.lambda_pdf.output_path
   function_name    = "${local.lambda_prefix}-pdf-generator"
@@ -14,8 +13,8 @@ resource "aws_lambda_function" "pdf_generator" {
   handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.lambda_pdf.output_base64sha256
   runtime          = var.lambda_runtime
-  timeout          = 300  # 5 minutos (generar PDF puede tardar)
-  memory_size      = 1024 # 1 GB (ReportLab necesita más memoria)
+  timeout          = 300  # 5 minutes
+  memory_size      = 1024 # 1 GB for PDF generation
 
   layers = [aws_lambda_layer_version.psycopg2.arn]
 

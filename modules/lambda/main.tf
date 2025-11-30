@@ -1,8 +1,4 @@
-# ============================================
-# LAMBDA MODULE - MAIN
-# ============================================
-
-# Locals
+# Common tags and Lambda prefix
 locals {
   common_tags = {
     Project     = var.project_name
@@ -14,15 +10,11 @@ locals {
   lambda_prefix = "${var.project_name}-${var.environment}"
 }
 
-# Data sources
+# AWS metadata data sources
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
-# ============================================
-# 1. IAM ROLE PARA LAMBDAS
-# ============================================
-
-# Role base para todas las Lambdas
+# IAM role for all Lambda functions
 resource "aws_iam_role" "lambda_execution" {
   name = "${local.lambda_prefix}-lambda-execution-role"
 
@@ -42,19 +34,19 @@ resource "aws_iam_role" "lambda_execution" {
   tags = local.common_tags
 }
 
-# Policy para logs en CloudWatch
+# Basic CloudWatch logs permissions for Lambda
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
   role       = aws_iam_role.lambda_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# Policy para VPC (si Lambda está en VPC)
+# VPC execution permissions for Lambda
 resource "aws_iam_role_policy_attachment" "lambda_vpc" {
   role       = aws_iam_role.lambda_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-# Policy personalizada para S3, SQS, RDS
+# Custom policy for S3, SQS, SES, SNS and Lambda invoke
 resource "aws_iam_role_policy" "lambda_permissions" {
   name = "${local.lambda_prefix}-lambda-permissions"
   role = aws_iam_role.lambda_execution.id
@@ -111,34 +103,26 @@ resource "aws_iam_role_policy" "lambda_permissions" {
   })
 }
 
-# ============================================
-# 2. LAMBDA LAYERS (Dependencias compartidas)
-# ============================================
-
-# Layer para psycopg2 (para conectar a PostgreSQL)
+# Lambda layer for psycopg2 (PostgreSQL adapter)
 resource "aws_lambda_layer_version" "psycopg2" {
   filename            = "${path.module}/layers/psycopg2-layer.zip"
   layer_name          = "${local.lambda_prefix}-psycopg2"
   compatible_runtimes = [var.lambda_runtime]
   description         = "PostgreSQL adapter for Python - v2"
 
-  # Este archivo debe ser creado previamente
-  # Ver instrucciones en README
   lifecycle {
     ignore_changes = [filename]
   }
 }
 
-# ============================================
-# Secrets Manager - credenciales de RDS
-# ============================================
-
+# Secrets Manager secret for DB credentials
 resource "aws_secretsmanager_secret" "db_credentials" {
   name = "${local.lambda_prefix}-db-credentials"
 
   tags = local.common_tags
 }
 
+# Secrets Manager secret value with DB connection details
 resource "aws_secretsmanager_secret_version" "db_credentials" {
   secret_id = aws_secretsmanager_secret.db_credentials.id
   secret_string = jsonencode({
@@ -150,6 +134,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
   })
 }
 
+# IAM policy for Lambdas to read DB secret
 resource "aws_iam_role_policy" "lambda_secrets" {
   name = "${local.lambda_prefix}-secrets-policy"
   role = aws_iam_role.lambda_execution.id
@@ -167,4 +152,5 @@ resource "aws_iam_role_policy" "lambda_secrets" {
     ]
   })
 }
+
 

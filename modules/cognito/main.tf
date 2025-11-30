@@ -1,11 +1,15 @@
+# Locals for names and common tags
+locals {
+  common_tags = var.common_tags
 
+  comment = "${var.project_name}-${var.environment}-portal"
+}
 
-// Cognito User Pool
-
+# Cognito User Pool for patients
 resource "aws_cognito_user_pool" "main" {
   name = "${var.project_name}-${var.environment}-patients"
 
-  # Username configuration
+  # Username configuration (email as username)
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
 
@@ -19,7 +23,7 @@ resource "aws_cognito_user_pool" "main" {
     temporary_password_validity_days = 7
   }
 
-  # User attributes schema
+  # Email attribute
   schema {
     name                = "email"
     attribute_data_type = "String"
@@ -32,6 +36,7 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
+  # Name attribute
   schema {
     name                = "name"
     attribute_data_type = "String"
@@ -44,6 +49,7 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
+  # Custom patient_id attribute
   schema {
     name                     = "patient_id"
     attribute_data_type      = "String"
@@ -57,6 +63,7 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
+  # Phone number attribute
   schema {
     name                = "phone_number"
     attribute_data_type = "String"
@@ -69,7 +76,7 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
-  # Account recovery
+  # Account recovery via verified email
   account_recovery_setting {
     recovery_mechanism {
       name     = "verified_email"
@@ -82,19 +89,19 @@ resource "aws_cognito_user_pool" "main" {
     email_sending_account = "COGNITO_DEFAULT"
   }
 
-  # Verification message templates
+  # Verification email template
   verification_message_template {
     default_email_option = "CONFIRM_WITH_CODE"
     email_subject        = "Healthcare Lab - Verify your email"
     email_message        = "Your verification code is {####}"
   }
 
-  # User pool add-ons
+  # Advanced security in audit mode
   user_pool_add_ons {
     advanced_security_mode = "AUDIT"
   }
 
-  # MFA configuration (optional but recommended)
+  # MFA configuration
   mfa_configuration = var.enable_mfa ? "OPTIONAL" : "OFF"
 
   dynamic "software_token_mfa_configuration" {
@@ -104,7 +111,7 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
-  # Admin create user configuration
+  # Self sign-up enabled with invite template
   admin_create_user_config {
     allow_admin_create_user_only = false
 
@@ -126,19 +133,13 @@ resource "aws_cognito_user_pool" "main" {
   )
 }
 
-# ===================================
-# User Pool Domain (for Hosted UI)
-# ===================================
-
+# Cognito User Pool domain for Hosted UI
 resource "aws_cognito_user_pool_domain" "main" {
   domain       = "${var.project_name}-${var.environment}-${var.domain_suffix}"
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
-# ===================================
-# User Pool Client (Web Application)
-# ===================================
-
+# Web application user pool client
 resource "aws_cognito_user_pool_client" "web" {
   name         = "${var.project_name}-${var.environment}-web-client"
   user_pool_id = aws_cognito_user_pool.main.id
@@ -148,14 +149,14 @@ resource "aws_cognito_user_pool_client" "web" {
   allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_scopes                 = ["email", "openid", "profile"]
 
-  # Callback URLs (update these with your ALB URL)
+  # Web callback and logout URLs
   callback_urls = var.callback_urls
   logout_urls   = var.logout_urls
 
   # Token validity
-  id_token_validity      = 60 # 60 minutes
-  access_token_validity  = 60 # 60 minutes
-  refresh_token_validity = 30 # 30 days
+  id_token_validity      = 60 # minutes
+  access_token_validity  = 60 # minutes
+  refresh_token_validity = 30 # days
 
   token_validity_units {
     id_token      = "minutes"
@@ -163,7 +164,7 @@ resource "aws_cognito_user_pool_client" "web" {
     refresh_token = "days"
   }
 
-  # Read/Write attributes
+  # Read attributes
   read_attributes = [
     "email",
     "email_verified",
@@ -172,13 +173,14 @@ resource "aws_cognito_user_pool_client" "web" {
     "phone_number"
   ]
 
+  # Writable attributes
   write_attributes = [
     "email",
     "name",
     "phone_number"
   ]
 
-  # Security
+  # Security options
   prevent_user_existence_errors = "ENABLED"
   enable_token_revocation       = true
 
@@ -190,10 +192,7 @@ resource "aws_cognito_user_pool_client" "web" {
   ]
 }
 
-# ===================================
-# User Pool Client (Mobile/API - Optional)
-# ===================================
-
+# Mobile/API user pool client (optional)
 resource "aws_cognito_user_pool_client" "mobile" {
   count = var.create_mobile_client ? 1 : 0
 
@@ -205,7 +204,7 @@ resource "aws_cognito_user_pool_client" "mobile" {
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["email", "openid", "profile"]
 
-  # Mobile callback URLs
+  # Mobile callback and logout URLs
   callback_urls = var.mobile_callback_urls
   logout_urls   = var.mobile_logout_urls
 
@@ -237,10 +236,7 @@ resource "aws_cognito_user_pool_client" "mobile" {
   ]
 }
 
-# ===================================
-# Identity Pool (for direct AWS access - Optional)
-# ===================================
-
+# Cognito Identity Pool (optional)
 resource "aws_cognito_identity_pool" "main" {
   count = var.create_identity_pool ? 1 : 0
 
@@ -257,7 +253,7 @@ resource "aws_cognito_identity_pool" "main" {
   tags = var.common_tags
 }
 
-# IAM role for authenticated users (Identity Pool)
+# IAM role for authenticated Identity Pool users
 resource "aws_iam_role" "authenticated" {
   count = var.create_identity_pool ? 1 : 0
 
@@ -287,7 +283,7 @@ resource "aws_iam_role" "authenticated" {
   tags = var.common_tags
 }
 
-# Policy for authenticated users (minimal S3 access for PDFs)
+# IAM policy for authenticated users (S3 read-only for own reports)
 resource "aws_iam_role_policy" "authenticated" {
   count = var.create_identity_pool ? 1 : 0
 
@@ -308,7 +304,7 @@ resource "aws_iam_role_policy" "authenticated" {
   })
 }
 
-# Attach identity pool roles
+# Attach authenticated role to Identity Pool
 resource "aws_cognito_identity_pool_roles_attachment" "main" {
   count = var.create_identity_pool ? 1 : 0
 
@@ -319,10 +315,7 @@ resource "aws_cognito_identity_pool_roles_attachment" "main" {
   }
 }
 
-# ===================================
-# User Pool Groups
-# ===================================
-
+# Cognito group for patient users
 resource "aws_cognito_user_group" "patients" {
   name         = "patients"
   user_pool_id = aws_cognito_user_pool.main.id
@@ -330,6 +323,7 @@ resource "aws_cognito_user_group" "patients" {
   precedence   = 1
 }
 
+# Cognito group for admin users
 resource "aws_cognito_user_group" "admins" {
   name         = "admins"
   user_pool_id = aws_cognito_user_pool.main.id
@@ -337,10 +331,7 @@ resource "aws_cognito_user_group" "admins" {
   precedence   = 0
 }
 
-# ===================================
-# CloudWatch Log Group for Cognito
-# ===================================
-
+# CloudWatch log group for Cognito logs
 resource "aws_cloudwatch_log_group" "cognito" {
   name              = "/aws/cognito/${var.project_name}-${var.environment}"
   retention_in_days = 7
@@ -348,11 +339,7 @@ resource "aws_cloudwatch_log_group" "cognito" {
   tags = var.common_tags
 }
 
-# ===================================
-# Lambda Triggers (Optional - for customization)
-# ===================================
-
-# Pre-signup trigger (validate email domain, etc.)
+# Lambda permission for pre-signup trigger (optional)
 resource "aws_lambda_permission" "cognito_pre_signup" {
   count = var.pre_signup_lambda_arn != "" ? 1 : 0
 
@@ -363,7 +350,7 @@ resource "aws_lambda_permission" "cognito_pre_signup" {
   source_arn    = aws_cognito_user_pool.main.arn
 }
 
-# Post-confirmation trigger (send welcome email, etc.)
+# Lambda permission for post-confirmation trigger (optional)
 resource "aws_lambda_permission" "cognito_post_confirmation" {
   count = var.post_confirmation_lambda_arn != "" ? 1 : 0
 
@@ -373,4 +360,8 @@ resource "aws_lambda_permission" "cognito_post_confirmation" {
   principal     = "cognito-idp.amazonaws.com"
   source_arn    = aws_cognito_user_pool.main.arn
 }
+
+# Data source for current AWS region (used in Hosted UI URLs)
+data "aws_region" "current" {}
+
 

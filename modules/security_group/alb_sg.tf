@@ -1,47 +1,30 @@
-//Security Groups Module - Application Load Balancer Security Group
-
-// Locals para tags comunes
-locals {
-  common_tags = {
-    Project     = var.project_name
-    Environment = var.environment
-    Owner       = var.owner
-    ManagedBy   = "Terraform"
-  }
-}
-
-// ALB SECURITY GROUP
-
-// Para el Application Load Balancer (puerta de entrada web)
+# Security group for the public Application Load Balancer
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-${var.environment}-alb-sg"
-  description = "Security group para Application Load Balancer"
+  description = "Security group for Application Load Balancer"
   vpc_id      = var.vpc_id
 
-  // REGLAS DE ENTRADA (Ingress)
-  // Permitir tráfico HTTPS desde internet
+  # Allow HTTPS from allowed CIDR ranges
   ingress {
-    description = "HTTPS desde internet"
+    description = "HTTPS from internet"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = var.allowed_cidr_blocks
   }
 
-  # Permitir tráfico HTTP (redirigir a HTTPS)
+  # Allow HTTP from allowed CIDR ranges (used for HTTP→HTTPS redirect)
   ingress {
-    description = "HTTP desde internet (para redirect a HTTPS)"
+    description = "HTTP from internet (redirect to HTTPS)"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = var.allowed_cidr_blocks
   }
 
-  // REGLAS DE SALIDA (Egress)
-
-  # EGRESS: el ALB puede hablar hacia la VPC
+  # Allow all outbound traffic
   egress {
-    description = "Salida a cualquier destino dentro de la VPC"
+    description = "Outbound traffic to any destination"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"

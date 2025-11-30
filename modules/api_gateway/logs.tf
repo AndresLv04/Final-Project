@@ -1,11 +1,4 @@
-# ============================================
-# API GATEWAY LOGS & ALARMS
-# ============================================
-
-###########################################
-# Rol para que API Gateway escriba en CWL
-###########################################
-
+# IAM role for API Gateway to write CloudWatch logs
 resource "aws_iam_role" "apigw_cloudwatch" {
   name = "${local.api_name}-apigw-logs-role"
 
@@ -25,23 +18,18 @@ resource "aws_iam_role" "apigw_cloudwatch" {
   tags = local.common_tags
 }
 
+# Attach managed policy for API Gateway logging to CloudWatch
 resource "aws_iam_role_policy_attachment" "apigw_cloudwatch" {
   role       = aws_iam_role.apigw_cloudwatch.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
 }
 
-###########################################
-# Configuración de cuenta de API Gateway
-###########################################
-
+# API Gateway account configuration using CloudWatch logs role
 resource "aws_api_gateway_account" "this" {
   cloudwatch_role_arn = aws_iam_role.apigw_cloudwatch.arn
 }
 
-# ============================================
-# API GATEWAY LOGS & ALARMS
-# ============================================
-
+# CloudWatch log group for API Gateway access logs
 resource "aws_cloudwatch_log_group" "api_gateway" {
   count             = var.enable_access_logs ? 1 : 0
   name              = "/aws/apigateway/${local.api_name}"
@@ -50,7 +38,7 @@ resource "aws_cloudwatch_log_group" "api_gateway" {
   tags = local.common_tags
 }
 
-# Alarma: 4XX Errors
+# CloudWatch alarm for high 4XX errors
 resource "aws_cloudwatch_metric_alarm" "api_4xx" {
   count = var.alarm_sns_topic_arn != "" ? 1 : 0
 
@@ -76,7 +64,7 @@ resource "aws_cloudwatch_metric_alarm" "api_4xx" {
   tags = local.common_tags
 }
 
-# Alarma: 5XX Errors
+# CloudWatch alarm for high 5XX errors
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   count = var.alarm_sns_topic_arn != "" ? 1 : 0
 
@@ -102,7 +90,7 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   tags = local.common_tags
 }
 
-# Alarma: Latency alta
+# CloudWatch alarm for high API latency
 resource "aws_cloudwatch_metric_alarm" "api_latency" {
   count = var.alarm_sns_topic_arn != "" ? 1 : 0
 
@@ -127,3 +115,4 @@ resource "aws_cloudwatch_metric_alarm" "api_latency" {
 
   tags = local.common_tags
 }
+

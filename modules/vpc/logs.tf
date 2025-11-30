@@ -1,4 +1,3 @@
-//Esto captura todo el tráfico de red para auditoría
 //This captures all network traffic for auditing
 resource "aws_flow_log" "main" {
 
@@ -45,7 +44,6 @@ resource "aws_iam_role" "flow_log_role" {
   tags = local.common_tags
 }
 
-//IAM Politicas para el rol de VPC Flow Logs
 //IAM Policy Attachment for VPC Flow Logs Role
 resource "aws_iam_role_policy" "name" {
   name = "${var.project_name}-${var.environment}-vpc-flow-log-policy"

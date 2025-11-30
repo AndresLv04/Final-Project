@@ -1,26 +1,12 @@
-
-// ECS WORKER SECURITY GROUP
-
-
-// Para los workers que procesan resultados de laboratorio
-
+# Security group for ECS worker tasks (lab processors)
 resource "aws_security_group" "ecs_worker" {
   name        = "${var.project_name}-${var.environment}-ecs-worker-sg"
-  description = "Security group para ECS Workers (Lab Processors)"
+  description = "Security group for ECS worker tasks"
   vpc_id      = var.vpc_id
 
-  // REGLAS DE ENTRADA
-  // Los workers NO reciben tráfico entrante (solo procesan desde SQS)
-  // Por seguridad, no definimos ninguna regla ingress
+  # No inbound rules: workers do not receive direct traffic
 
-  /*
-  REGLAS DE SALIDA
-    Necesitan:
-    - Acceder a RDS (PostgreSQL)
-    - Acceder a S3 (vía VPC endpoint o internet)
-    - Acceder a SQS
-    - Acceder a SNS 
-*/
+  # Allow all outbound traffic (RDS, S3, SQS, SNS, etc.)
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0

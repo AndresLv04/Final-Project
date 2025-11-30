@@ -1,10 +1,11 @@
-# Empaquetar código XML adapter
+# Package XML adapter Lambda code
 data "archive_file" "lambda_xml_adapter" {
   type        = "zip"
   source_dir  = "${path.module}/functions/xml_adapter"
   output_path = "${path.module}/builds/xml_adapter.zip"
 }
 
+# Lambda function: XML adapter
 resource "aws_lambda_function" "xml_adapter" {
   filename         = data.archive_file.lambda_xml_adapter.output_path
   function_name    = "${local.lambda_prefix}-xml-adapter"
@@ -44,3 +45,4 @@ resource "aws_lambda_function" "xml_adapter" {
     aws_iam_role_policy_attachment.lambda_vpc
   ]
 }
+

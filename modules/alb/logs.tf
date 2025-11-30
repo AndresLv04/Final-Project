@@ -1,7 +1,6 @@
-# ===================================
 # CloudWatch Alarms
-# ===================================
 
+# CloudWatch alarm for high ALB target response time
 resource "aws_cloudwatch_metric_alarm" "target_response_time" {
   alarm_name          = "${var.project_name}-${var.environment}-alb-high-response-time"
   comparison_operator = "GreaterThanThreshold"
@@ -21,6 +20,7 @@ resource "aws_cloudwatch_metric_alarm" "target_response_time" {
   tags = local.common_tags
 }
 
+# CloudWatch alarm for unhealthy ALB targets
 resource "aws_cloudwatch_metric_alarm" "unhealthy_target_count" {
   alarm_name          = "${var.project_name}-${var.environment}-alb-unhealthy-targets"
   comparison_operator = "GreaterThanThreshold"
@@ -40,6 +40,7 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_target_count" {
   tags = local.common_tags
 }
 
+# CloudWatch alarm for high 5xx errors from ALB targets
 resource "aws_cloudwatch_metric_alarm" "http_5xx_count" {
   alarm_name          = "${var.project_name}-${var.environment}-alb-high-5xx-errors"
   comparison_operator = "GreaterThanThreshold"
@@ -59,6 +60,7 @@ resource "aws_cloudwatch_metric_alarm" "http_5xx_count" {
   tags = local.common_tags
 }
 
+# CloudWatch alarm for rejected connections on the ALB
 resource "aws_cloudwatch_metric_alarm" "rejected_connection_count" {
   alarm_name          = "${var.project_name}-${var.environment}-alb-rejected-connections"
   comparison_operator = "GreaterThanThreshold"
@@ -77,10 +79,7 @@ resource "aws_cloudwatch_metric_alarm" "rejected_connection_count" {
   tags = local.common_tags
 }
 
-# ===================================
-# CloudWatch Log Group for ALB Access Logs
-# ===================================
-
+# CloudWatch log group for ALB access logs
 resource "aws_cloudwatch_log_group" "alb" {
   count = var.enable_cloudwatch_logs ? 1 : 0
 
@@ -90,10 +89,7 @@ resource "aws_cloudwatch_log_group" "alb" {
   tags = local.common_tags
 }
 
-# ===================================
-# Route53 Record (Optional)
-# ===================================
-
+# Route53 A record alias pointing domain to ALB
 resource "aws_route53_record" "alb" {
   count = var.route53_zone_id != "" ? 1 : 0
 

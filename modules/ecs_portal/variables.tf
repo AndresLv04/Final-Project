@@ -1,8 +1,4 @@
-# ===================================
-# ECS Portal Module - Variables
-# ===================================
-
-# Proyecto / entorno / tags
+# Project / environment / tags
 variable "project_name" {
   description = "Nombre del proyecto / Project name"
   type        = string
@@ -23,10 +19,7 @@ variable "common_tags" {
   type        = map(string)
 }
 
-# ===================================
 # ECS task settings
-# ===================================
-
 variable "task_cpu" {
   description = "vCPU para la task de Fargate (por ejemplo 256, 512, 1024) / Fargate task CPU"
   type        = string
@@ -60,10 +53,7 @@ variable "max_capacity" {
   default     = 3
 }
 
-# ===================================
 # Networking & ECS
-# ===================================
-
 variable "ecs_cluster_id" {
   description = "ID del cluster ECS donde se desplegará el portal / ECS cluster ARN or ID"
   type        = string
@@ -94,11 +84,7 @@ variable "app_url" {
   type        = string
 }
 
-
-# ===================================
 # Cognito & Auth
-# ===================================
-
 variable "cognito_user_pool_id" {
   description = "Cognito User Pool ID para el portal / User Pool ID"
   type        = string
@@ -129,10 +115,7 @@ variable "logout_url" {
   type        = string
 }
 
-# ===================================
 # Database (RDS)
-# ===================================
-
 variable "db_host" {
   description = "Host de la base de datos / Database host"
   type        = string
@@ -160,7 +143,7 @@ variable "db_password" {
   sensitive   = true
 }
 
-
+# PDF Lambda integration
 variable "pdf_lambda_function_name" {
   description = "Nombre de la Lambda que genera PDFs de resultados"
   type        = string

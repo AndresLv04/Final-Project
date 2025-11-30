@@ -1,83 +1,85 @@
-# Variables comunes
+# Common metadata
 variable "project_name" {
-  description = "Nombre del proyecto"
-  type        = string
-}
-variable "environment" {
-  description = "Ambiente (dev, staging, prod)"
-  type        = string
-}
-variable "owner" {
-  description = "Dueño del proyecto"
+  description = "Project name"
   type        = string
 }
 
-// Configuración de la cola principal
+variable "environment" {
+  description = "Environment (dev, staging, prod)"
+  type        = string
+}
+
+variable "owner" {
+  description = "Project owner"
+  type        = string
+}
+
+# Main queue configuration
 variable "visibility_timeout_seconds" {
-  description = "Tiempo que un mensaje permanece invisible después de ser leído"
+  description = "Visibility timeout for messages once they are received"
   type        = number
   default     = 300
 }
 
 variable "message_retention_seconds" {
-  description = "Tiempo que SQS retiene un mensaje"
+  description = "How long SQS retains messages before deleting them"
   type        = number
-  default     = 1209600 # 14 días (máximo)
+  default     = 1209600 # 14 days
 }
 
 variable "max_message_size" {
-  description = "Tamaño máximo del mensaje en bytes"
+  description = "Maximum message size in bytes"
   type        = number
-  default     = 262144 # 256 KB (máximo)
+  default     = 262144 # 256 KB
 }
 
 variable "delay_seconds" {
-  description = "Delay antes de que el mensaje esté disponible"
+  description = "Delay in seconds before a message becomes visible"
   type        = number
-  default     = 0 # Sin delay por defecto
+  default     = 0
 }
 
 variable "receive_wait_time_seconds" {
-  description = "Long polling wait time"
+  description = "Long polling wait time in seconds"
   type        = number
-  default     = 20 # 20 segundos 
+  default     = 20
 }
 
-# Dead Letter Queue
+# Dead-letter queue configuration
 variable "max_receive_count" {
-  description = "Número de intentos antes de ir a DLQ"
+  description = "Number of receive attempts before moving message to DLQ"
   type        = number
   default     = 3
 }
 
 variable "dlq_message_retention_seconds" {
-  description = "Tiempo de retención en DLQ"
+  description = "How long messages are retained in the DLQ"
   type        = number
-  default     = 1209600 # 14 días
+  default     = 1209600 # 14 days
 }
 
-# Encriptación
+# Encryption settings
 variable "enable_encryption" {
-  description = "Habilitar encriptación en SQS"
+  description = "Enable server-side encryption for SQS queues"
   type        = bool
   default     = true
 }
 
 variable "kms_key_id" {
-  description = "KMS key para encriptación (null = usa SQS managed key)"
+  description = "KMS key ID for encryption (null to use SQS managed key)"
   type        = string
   default     = null
 }
 
-# CloudWatch Alarms
+# CloudWatch alarms configuration
 variable "enable_cloudwatch_alarms" {
-  description = "Crear alarmas de CloudWatch"
+  description = "Create CloudWatch alarms for the SQS queues"
   type        = bool
   default     = true
 }
 
 variable "alarm_email" {
-  description = "Email para recibir alarmas"
+  description = "Email address to receive SQS alarm notifications"
   type        = string
   default     = ""
 }
