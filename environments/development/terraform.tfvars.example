@@ -1,6 +1,153 @@
-project_name = "healthcare-lab"
-environment  = "dev"
-aws_region   = "us-east-1"
+# Example terraform.tfvars file for the dev environment.
+# Copy this file to terraform.tfvars and customize the values for your own AWS account.
 
-db_username = "your-db-username"
-db_password = "your-secure-password-here"
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Common / global project metadata
+common = {
+  description  = "Common settings such as project name and environment"
+  project_name = "healthcare-lab-platform"
+  environment  = "dev"
+  owner        = "Student Team"
+}
+
+# VPC networking configuration
+vpc = {
+  vpc_cidr                      = "10.0.0.0/16"
+  public_subnet_cidrs           = "10.0.1.0/24"
+  public_subnet_cidr_secondary  = "10.0.4.0/24"
+  private_subnet_cidrs          = "10.0.2.0/24"
+  private_subnet_cidr_secondary = "10.0.3.0/24"
+  availability_zone             = "us-east-1a"
+  availability_zone_secondary   = "us-east-1b"
+  enable_dns_hostnames          = true
+  enable_dns_support            = true
+  enable_nat_gateway            = true
+}
+
+# Security group defaults
+security_groups = {
+  # 0.0.0.0/0 = open from anywhere (ok for demo, not for production)
+  allowed_cidr_blocks = ["0.0.0.0/0"]
+  enable_ssh_access   = false
+}
+
+# S3 configuration for project buckets
+s3 = {
+  enable_versioning       = true
+  lifecycle_rules_enabled = true
+  days_to_transition_ia   = 90
+  days_to_glacier         = 180
+  enable_access_logging   = true
+}
+
+# SQS configuration (background processing queues)
+sqs = {
+  sqs_visibility_timeout = 300
+  sqs_max_receive_count  = 3
+  enable_sqs_alarms      = true
+  # Example email, replace in a real project
+  alarm_email            = "alerts@example.com"
+}
+
+# RDS PostgreSQL database configuration
+rds = {
+  # Example password for academic use only (do not use in real systems)
+  db_password             = "example-db-password-123!"
+  db_instance_class       = "db.t3.micro"
+  db_multi_az             = false
+  alarm_sns_topic_arn     = ""
+  engine_version          = "16.6"
+  parameter_family        = "postgres16"
+  backup_retention_period = 0
+}
+
+# Default configuration for Lambda functions
+lambda = {
+  lambda_runtime     = "python3.11"
+  lambda_timeout     = 60
+  lambda_memory_size = 512
+}
+
+# API Gateway throttling and logging configuration
+api_gateway = {
+  api_throttle_rate_limit  = 1
+  api_throttle_burst_limit = 1
+  api_quota_limit          = 10000
+  enable_api_key_required  = true
+  enable_access_logs       = true
+  log_retention_days       = 7
+}
+
+# Notification / email settings
+notifications = {
+  # Example SES identity and support email for demo purposes
+  ses_email_identity = "noreply@example.com"
+  portal_url         = "https://portal.example.com"
+  support_email      = "support@example.com"
+}
+
+# ECS worker configuration (background processing)
+ecs = {
+  task_cpu           = "512"
+  task_memory        = "1024"
+  desired_count      = 1
+  min_capacity       = 1
+  max_capacity       = 5
+  target_queue_depth = 100
+}
+
+# Amazon Cognito configuration (User Pool / Identity Pool)
+cognito = {
+  domain_suffix       = "auth"
+  enable_mfa          = false
+  deletion_protection = false
+
+  callback_urls = [
+    "https://portal.example.com/callback"
+  ]
+
+  logout_urls = [
+    "https://portal.example.com/login",
+    "https://portal.example.com"
+  ]
+
+  create_mobile_client = false
+  mobile_callback_urls = []
+  mobile_logout_urls   = []
+
+  create_identity_pool = true
+}
+
+# Application Load Balancer settings for the portal
+alb = {
+  enable_deletion_protection = false
+  idle_timeout               = 60
+  container_port             = 5000
+  health_check_path          = "/health"
+  enable_stickiness          = false
+
+  # HTTPS and logging (left empty/disabled for the dev example)
+  certificate_arn        = ""
+  ssl_policy             = "ELBSecurityPolicy-2016-08"
+  access_logs_bucket     = ""
+  enable_access_logs     = false
+  enable_cloudwatch_logs = true
+
+  route53_zone_id = ""
+  domain_name     = ""
+  waf_web_acl_arn = ""
+}
+
+# ECS service configuration for the Patient Portal
+portal = {
+  # Example ECR image reference – replace with your own account and repo
+  container_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/healthcare-lab-platform-dev-portal:latest"
+
+  task_cpu      = "256"
+  task_memory   = "512"
+  desired_count = 1
+  min_capacity  = 1
+  max_capacity  = 3
+}

@@ -1,3 +1,7 @@
+# CI/CD Pipeline for the healthcare-lab-platform project.
+# NOTE: This workflow is configured in "academic mode".
+# Set ENABLE_REAL_DEPLOY to 'true' to allow real AWS deployments.
+
 name: CI/CD Pipeline
 
 on:
@@ -24,6 +28,8 @@ env:
   AWS_REGION: us-east-1
   TERRAFORM_VERSION: 1.6.0
   PYTHON_VERSION: 3.11
+  # When false, all AWS deployment steps are skipped (safe for public / academic use)
+  ENABLE_REAL_DEPLOY: false
 
 jobs:
   # ===================================
@@ -103,13 +109,13 @@ jobs:
           name: codecov-umbrella
 
   # ===================================
-  # JOB 3: Terraform Plan (PR only)
+  # JOB 3: Terraform Plan (PR only, real mode only)
   # ===================================
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
     needs: [validate, test]
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && env.ENABLE_REAL_DEPLOY == 'true'
 
     permissions:
       pull-requests: write
@@ -169,13 +175,13 @@ jobs:
             })
 
   # ===================================
-  # JOB 4: Build Docker Images
+  # JOB 4: Build Docker Images (real mode only)
   # ===================================
   build-docker:
     name: Build Docker Images
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    if: (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && env.ENABLE_REAL_DEPLOY == 'true'
 
     strategy:
       matrix:
@@ -208,7 +214,7 @@ jobs:
           cd services/${{ matrix.service }}
 
           ECR_REPOSITORY=${{ matrix.ecr_repository }}
-          echo "Usando repositorio: $ECR_REGISTRY/$ECR_REPOSITORY"
+          echo "Using repository: $ECR_REGISTRY/$ECR_REPOSITORY"
 
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
@@ -224,13 +230,13 @@ jobs:
           echo "Image pushed: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repository }}:${{ github.sha }}"
 
   # ===================================
-  # JOB 5: Package Lambda Functions
+  # JOB 5: Package Lambda Functions (real mode only)
   # ===================================
   package-lambda:
     name: Package Lambda Functions
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    if: (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && env.ENABLE_REAL_DEPLOY == 'true'
 
     strategy:
       matrix:
@@ -266,13 +272,13 @@ jobs:
           retention-days: 7
 
   # ===================================
-  # JOB 6: Deploy to Staging
+  # JOB 6: Deploy to Staging (real mode only)
   # ===================================
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: [build-docker, package-lambda]
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop' && env.ENABLE_REAL_DEPLOY == 'true'
     environment:
       name: staging
       url: https://staging.healthcarelab.com
@@ -312,12 +318,12 @@ jobs:
                 LAMBDA_NAME="healthcare-lab-platform-dev-pdf-generator"
                 ;;
               *)
-                echo "Función desconocida: $function"
+                echo "Unknown function: $function"
                 exit 1
                 ;;
             esac
 
-            echo "Actualizando función Lambda $LAMBDA_NAME"
+            echo "Updating Lambda function $LAMBDA_NAME"
             aws lambda update-function-code \
               --function-name "$LAMBDA_NAME" \
               --zip-file fileb://lambda-artifacts/lambda-${function}/function.zip
@@ -352,13 +358,13 @@ jobs:
             --services healthcare-lab-platform-dev-worker healthcare-lab-platform-dev-portal
 
   # ===================================
-  # JOB 7: Deploy to Production
+  # JOB 7: Deploy to Production (real mode only)
   # ===================================
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [build-docker, package-lambda]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && env.ENABLE_REAL_DEPLOY == 'true'
     environment:
       name: production
       url: https://healthcarelab.com
