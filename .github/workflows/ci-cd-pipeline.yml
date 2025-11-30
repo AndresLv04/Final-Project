@@ -206,20 +206,39 @@ jobs:
         run: |
           cd services/${{ matrix.service }}
 
+          # Seleccionar el repositorio correcto según el servicio
+          if [ "${{ matrix.service }}" = "processor" ]; then
+            # Repo REAL en ECR para el worker
+            ECR_REPOSITORY=healthcare-lab-platform-dev-worker
+          else
+            # Para portal, asumimos que el repo es healthcare-lab-dev-portal
+            ECR_REPOSITORY=healthcare-lab-dev-${{ matrix.service }}
+          fi
+
+          echo "Usando repositorio: $ECR_REGISTRY/$ECR_REPOSITORY"
+
           # Build image
-          docker build -t $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:$IMAGE_TAG .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
           docker tag \
-            $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:$IMAGE_TAG \
-            $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:latest
+            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
           # Push image
-          docker push $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:$IMAGE_TAG
-          docker push $ECR_REGISTRY/healthcare-lab-dev-${{ matrix.service }}:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
 
       - name: Output image URI
         run: |
-          echo "Image pushed: ${{ steps.login-ecr.outputs.registry }}/healthcare-lab-dev-${{ matrix.service }}:${{ github.sha }}"
+          if [ "${{ matrix.service }}" = "processor" ]; then
+            ECR_REPOSITORY=healthcare-lab-platform-dev-worker
+          else
+            ECR_REPOSITORY=healthcare-lab-dev-${{ matrix.service }}
+          fi
+
+          echo "Image pushed: ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:${{ github.sha }}"
+
 
   # ===================================
   # JOB 5: Package Lambda Functions
