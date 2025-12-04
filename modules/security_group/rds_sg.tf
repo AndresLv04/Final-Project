@@ -1,19 +1,12 @@
-
-// RDS SECURITY GROUP
-
-// Para la base de datos PostgreSQL
-
+# Security group for PostgreSQL RDS instance
 resource "aws_security_group" "rds" {
   name        = "${var.project_name}-${var.environment}-rds-sg"
-  description = "Security group para RDS PostgreSQL"
+  description = "Security group for RDS PostgreSQL"
   vpc_id      = var.vpc_id
 
-  // REGLAS DE ENTRADA
-  // Permitir PostgreSQL SOLO desde ECS services y Lambda
-
-  // Desde ECS Portal, lambda y ecs worker
+  # Allow PostgreSQL only from ECS portal, ECS workers and Lambda
   ingress {
-    description = "PostgreSQL desde ECS Portal"
+    description = "PostgreSQL from ECS and Lambda"
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
@@ -24,10 +17,7 @@ resource "aws_security_group" "rds" {
     ]
   }
 
-
-  //REGLAS DE SALIDA
-  // RDS no necesita iniciar conexiones salientes
-  // Pero AWS requiere al menos una regla egress
+  # Required egress rule (RDS typically does not initiate outbound connections)
   egress {
     description = "Allow all outbound traffic (required by AWS)"
     from_port   = 0

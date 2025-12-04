@@ -1,8 +1,4 @@
-# ===================================
-# ECS Portal - Main resources
-# ===================================
-
-# ECR Repository for Portal
+# ECR repository for portal images
 resource "aws_ecr_repository" "portal" {
   name                 = "${var.project_name}-${var.environment}-portal"
   image_tag_mutability = "MUTABLE"
@@ -18,6 +14,7 @@ resource "aws_ecr_repository" "portal" {
   tags = var.common_tags
 }
 
+# ECR lifecycle policy to keep last 10 images
 resource "aws_ecr_lifecycle_policy" "portal" {
   repository = aws_ecr_repository.portal.name
 
@@ -39,10 +36,7 @@ resource "aws_ecr_lifecycle_policy" "portal" {
   })
 }
 
-# ===================================
-# IAM Role for Task Execution
-# ===================================
-
+# IAM role for ECS task execution
 resource "aws_iam_role" "task_execution" {
   name = "${var.project_name}-${var.environment}-portal-task-execution"
 
@@ -62,11 +56,13 @@ resource "aws_iam_role" "task_execution" {
   tags = var.common_tags
 }
 
+# Attach standard ECS task execution policy
 resource "aws_iam_role_policy_attachment" "task_execution_policy" {
   role       = aws_iam_role.task_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Extra ECR and logs permissions for execution role
 resource "aws_iam_role_policy" "task_execution_ecr" {
   name = "ecr-access"
   role = aws_iam_role.task_execution.id
@@ -96,10 +92,7 @@ resource "aws_iam_role_policy" "task_execution_ecr" {
   })
 }
 
-# ===================================
-# IAM Role for Task
-# ===================================
-
+# IAM role for ECS application task
 resource "aws_iam_role" "task" {
   name = "${var.project_name}-${var.environment}-portal-task"
 
@@ -119,7 +112,7 @@ resource "aws_iam_role" "task" {
   tags = var.common_tags
 }
 
-# Minimal permissions for Portal (logs)
+# Minimal permissions for portal task (logs)
 resource "aws_iam_role_policy" "task_policy" {
   name = "portal-permissions"
   role = aws_iam_role.task.id
@@ -139,10 +132,7 @@ resource "aws_iam_role_policy" "task_policy" {
   })
 }
 
-# ===================================
-# ECS Task Definition
-# ===================================
-
+# ECS task definition for portal service
 resource "aws_ecs_task_definition" "portal" {
   family                   = "${var.project_name}-${var.environment}-portal"
   network_mode             = "awsvpc"
@@ -188,8 +178,7 @@ resource "aws_ecs_task_definition" "portal" {
           value = var.pdf_lambda_function_name
         },
         {
-          name = "APP_URL"
-          # URL base pública del portal (CloudFront o dominio propio)
+          name  = "APP_URL"
           value = var.app_url
         },
         {
@@ -248,10 +237,7 @@ resource "aws_ecs_task_definition" "portal" {
   tags = var.common_tags
 }
 
-# ===================================
-# ECS Service
-# ===================================
-
+# ECS service for portal Fargate tasks
 resource "aws_ecs_service" "portal" {
   name            = "${var.project_name}-${var.environment}-portal"
   cluster         = var.ecs_cluster_id
@@ -274,9 +260,7 @@ resource "aws_ecs_service" "portal" {
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
 
-
-
-  # Health check grace period for ALB
+  # ALB health check grace period
   health_check_grace_period_seconds = 60
 
   tags = var.common_tags
@@ -286,10 +270,7 @@ resource "aws_ecs_service" "portal" {
   ]
 }
 
-# ===================================
-# Auto Scaling
-# ===================================
-
+# Application Auto Scaling target for ECS service
 resource "aws_appautoscaling_target" "portal" {
   max_capacity       = var.max_capacity
   min_capacity       = var.min_capacity
@@ -298,7 +279,7 @@ resource "aws_appautoscaling_target" "portal" {
   service_namespace  = "ecs"
 }
 
-# Scale based on CPU
+# Auto Scaling policy based on CPU utilization
 resource "aws_appautoscaling_policy" "portal_cpu" {
   name               = "${var.project_name}-${var.environment}-portal-cpu"
   policy_type        = "TargetTrackingScaling"
@@ -318,7 +299,7 @@ resource "aws_appautoscaling_policy" "portal_cpu" {
   }
 }
 
-# Scale based on Memory
+# Auto Scaling policy based on Memory utilization
 resource "aws_appautoscaling_policy" "portal_memory" {
   name               = "${var.project_name}-${var.environment}-portal-memory"
   policy_type        = "TargetTrackingScaling"

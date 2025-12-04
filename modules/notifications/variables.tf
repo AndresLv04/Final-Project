@@ -1,8 +1,4 @@
-# ============================================
-# NOTIFICATIONS MODULE - VARIABLES
-# ============================================
-
-# Variables comunes
+# Common
 variable "project_name" {
   description = "Nombre del proyecto"
   type        = string
@@ -18,7 +14,7 @@ variable "owner" {
   type        = string
 }
 
-# Lambda Notify
+# Lambda Notify configuration
 variable "lambda_notify_function_arn" {
   description = "ARN de Lambda Notify"
   type        = string
@@ -29,7 +25,7 @@ variable "lambda_notify_function_name" {
   type        = string
 }
 
-# SES Configuration
+# SES configuration
 variable "ses_email_identity" {
   description = "Email verificado en SES (from address)"
   type        = string
@@ -47,7 +43,7 @@ variable "enable_ses_event_tracking" {
   default     = true
 }
 
-# SNS Configuration
+# SNS configuration
 variable "enable_sns_encryption" {
   description = "Habilitar encriptación en SNS"
   type        = bool
@@ -60,7 +56,7 @@ variable "kms_key_id" {
   default     = null
 }
 
-# Email Templates
+# Email template parameters
 variable "portal_url" {
   description = "URL del portal de pacientes"
   type        = string

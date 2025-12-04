@@ -1,26 +1,12 @@
-
-// LAMBDA SECURITY GROUP
-
-// Para todas las funciones Lambda
-
+# Security group for Lambda functions running inside the VPC
 resource "aws_security_group" "lambda" {
   name        = "${var.project_name}-${var.environment}-lambda-sg"
-  description = "Security group para Lambda functions"
+  description = "Security group for Lambda functions"
   vpc_id      = var.vpc_id
 
-  // REGLAS DE ENTRADA
-  // Lambda functions no reciben tráfico entrante directo
-  // (son invocadas por eventos, API Gateway, etc.)
+  # No inbound rules: Lambda is invoked by AWS services, not directly
 
-  /* 
-    REGLAS DE SALIDA
-    Necesitan acceso a:
-     - RDS (para queries)
-     - S3 (para leer/escribir archivos)
-     - SQS (para enviar mensajes)
-     - SNS/SES (para notificaciones)
-     - Internet (para APIs externas) 
-*/
+  # Allow all outbound traffic (RDS, S3, SQS, SNS, SES, external APIs)
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0

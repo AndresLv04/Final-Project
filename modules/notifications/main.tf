@@ -1,8 +1,4 @@
-# ============================================
-# NOTIFICATIONS MODULE - MAIN
-# ============================================
-
-# Locals
+# Common tags and base names for notifications
 locals {
   common_tags = {
     Project     = var.project_name
@@ -14,20 +10,17 @@ locals {
   topic_name = "${var.project_name}-${var.environment}-result-ready"
 }
 
-# ============================================
-# 1. SNS TOPIC - Result Ready
-# ============================================
-
+# SNS topic for "result ready" notifications
 resource "aws_sns_topic" "result_ready" {
   name         = local.topic_name
   display_name = "Lab Result Ready Notification"
 
-  # Encriptación
+  # SNS encryption (optional)
   kms_master_key_id = var.enable_sns_encryption ? (
     var.kms_key_id != null ? var.kms_key_id : "alias/aws/sns"
   ) : null
 
-  # Delivery policy
+  # Delivery policy for HTTP(S) subscriptions
   delivery_policy = jsonencode({
     http = {
       defaultHealthyRetryPolicy = {
@@ -51,10 +44,7 @@ resource "aws_sns_topic" "result_ready" {
   )
 }
 
-# ============================================
-# 2. SNS TOPIC POLICY
-# ============================================
-
+# SNS topic policy to allow Lambda/ECS to publish
 resource "aws_sns_topic_policy" "result_ready" {
   arn = aws_sns_topic.result_ready.arn
 
@@ -77,22 +67,19 @@ resource "aws_sns_topic_policy" "result_ready" {
   })
 }
 
-# ============================================
-# 3. SNS SUBSCRIPTION - Lambda Notify
-# ============================================
-
+# SNS subscription to Lambda Notify
 resource "aws_sns_topic_subscription" "lambda_notify" {
   topic_arn = aws_sns_topic.result_ready.arn
   protocol  = "lambda"
   endpoint  = var.lambda_notify_function_arn
 
-  # Filter policy (opcional)
+  # Optional filter policy for event type
   filter_policy = jsonencode({
     event_type = ["result_completed"]
   })
 }
 
-# Permiso para que SNS invoque Lambda
+# Permission for SNS to invoke Lambda Notify
 resource "aws_lambda_permission" "sns_notify" {
   statement_id  = "AllowExecutionFromSNS"
   action        = "lambda:InvokeFunction"
@@ -101,35 +88,24 @@ resource "aws_lambda_permission" "sns_notify" {
   source_arn    = aws_sns_topic.result_ready.arn
 }
 
-# ============================================
-# 4. SES EMAIL IDENTITY
-# ============================================
-
-# Verificar email identity
+# SES email identity (FROM address)
 resource "aws_ses_email_identity" "sender" {
   email = var.ses_email_identity
 }
 
-# ============================================
-# 5. SES CONFIGURATION SET
-# ============================================
-
+# SES configuration set for tracking and TLS
 resource "aws_ses_configuration_set" "main" {
   name = "${var.project_name}-${var.environment}-emails"
 
-  # Tracking settings
   reputation_metrics_enabled = true
   sending_enabled            = true
 
   delivery_options {
-    tls_policy = "Require" # Forzar TLS
+    tls_policy = "Require"
   }
 }
 
-# ============================================
-# 6. SES EVENT DESTINATION (CloudWatch)
-# ============================================
-
+# SES event destination to send metrics to CloudWatch
 resource "aws_ses_event_destination" "cloudwatch" {
   count = var.enable_ses_event_tracking ? 1 : 0
 
@@ -154,10 +130,7 @@ resource "aws_ses_event_destination" "cloudwatch" {
   }
 }
 
-# ============================================
-# 7. SNS TOPIC PARA SES BOUNCES/COMPLAINTS
-# ============================================
-
+# SNS topic for SES bounces and complaints
 resource "aws_sns_topic" "ses_bounces" {
   count = var.enable_ses_event_tracking ? 1 : 0
 
@@ -167,6 +140,7 @@ resource "aws_sns_topic" "ses_bounces" {
   tags = local.common_tags
 }
 
+# Email subscription to SES bounces/complaints topic
 resource "aws_sns_topic_subscription" "ses_bounces_email" {
   count = var.enable_ses_event_tracking ? 1 : 0
 
@@ -175,10 +149,7 @@ resource "aws_sns_topic_subscription" "ses_bounces_email" {
   endpoint  = var.support_email
 }
 
-# ============================================
-# 8. SES IDENTITY NOTIFICATION TOPIC
-# ============================================
-
+# SES notification topic for bounces
 resource "aws_ses_identity_notification_topic" "bounce" {
   count = var.enable_ses_event_tracking ? 1 : 0
 
@@ -188,6 +159,7 @@ resource "aws_ses_identity_notification_topic" "bounce" {
   include_original_headers = true
 }
 
+# SES notification topic for complaints
 resource "aws_ses_identity_notification_topic" "complaint" {
   count = var.enable_ses_event_tracking ? 1 : 0
 
@@ -197,10 +169,7 @@ resource "aws_ses_identity_notification_topic" "complaint" {
   include_original_headers = true
 }
 
-# ============================================
-# 9. SES EMAIL TEMPLATE
-# ============================================
-
+# SES email template for "result ready" notification
 resource "aws_ses_template" "result_ready" {
   name    = "${var.project_name}-${var.environment}-result-ready"
   subject = "Your {{test_type}} Results Are Ready"

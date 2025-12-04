@@ -1,9 +1,4 @@
-# ============================================
-# 5. CLOUDWATCH ALARMS
-# ============================================
-
-// IAM ROLE PARA ENHANCED MONITORING
-# ============================================
+# IAM role for RDS enhanced monitoring
 resource "aws_iam_role" "rds_monitoring" {
   name = "${local.db_identifier}-monitoring-role"
 
@@ -23,12 +18,13 @@ resource "aws_iam_role" "rds_monitoring" {
   tags = local.common_tags
 }
 
+# Attach AWS managed policy for enhanced monitoring
 resource "aws_iam_role_policy_attachment" "rds_monitoring" {
   role       = aws_iam_role.rds_monitoring.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
 
-# Alarma: CPU alta
+# CloudWatch alarm for high CPU utilization
 resource "aws_cloudwatch_metric_alarm" "cpu" {
   count = var.enable_cloudwatch_alarms ? 1 : 0
 
@@ -37,11 +33,11 @@ resource "aws_cloudwatch_metric_alarm" "cpu" {
   comparison_operator = "GreaterThanThreshold"
 
   evaluation_periods = 2
-  threshold          = 80 # 80% CPU
+  threshold          = 80
 
   metric_name = "CPUUtilization"
   namespace   = "AWS/RDS"
-  period      = 300 # 5 minutos
+  period      = 300
   statistic   = "Average"
 
   dimensions = {
@@ -53,7 +49,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu" {
   tags = local.common_tags
 }
 
-# Alarma: Storage bajo
+# CloudWatch alarm for low free storage
 resource "aws_cloudwatch_metric_alarm" "storage" {
   count = var.enable_cloudwatch_alarms ? 1 : 0
 
@@ -62,7 +58,7 @@ resource "aws_cloudwatch_metric_alarm" "storage" {
   comparison_operator = "LessThanThreshold"
 
   evaluation_periods = 1
-  threshold          = 10 # 10% libre
+  threshold          = 10
 
   metric_name = "FreeStorageSpace"
   namespace   = "AWS/RDS"
@@ -78,7 +74,7 @@ resource "aws_cloudwatch_metric_alarm" "storage" {
   tags = local.common_tags
 }
 
-# Alarma: Memoria baja
+# CloudWatch alarm for low freeable memory
 resource "aws_cloudwatch_metric_alarm" "memory" {
   count = var.enable_cloudwatch_alarms ? 1 : 0
 
@@ -87,7 +83,7 @@ resource "aws_cloudwatch_metric_alarm" "memory" {
   comparison_operator = "LessThanThreshold"
 
   evaluation_periods = 2
-  threshold          = 256000000 # 256 MB en bytes
+  threshold          = 256000000 # 256 MB in bytes
 
   metric_name = "FreeableMemory"
   namespace   = "AWS/RDS"
@@ -103,7 +99,7 @@ resource "aws_cloudwatch_metric_alarm" "memory" {
   tags = local.common_tags
 }
 
-// Alarma: Conexiones altas
+# CloudWatch alarm for high number of connections
 resource "aws_cloudwatch_metric_alarm" "connections" {
   count = var.enable_cloudwatch_alarms ? 1 : 0
 
@@ -128,7 +124,7 @@ resource "aws_cloudwatch_metric_alarm" "connections" {
   tags = local.common_tags
 }
 
-# Alarma: Read Latency alta
+# CloudWatch alarm for high read latency
 resource "aws_cloudwatch_metric_alarm" "read_latency" {
   count = var.enable_cloudwatch_alarms ? 1 : 0
 
@@ -153,7 +149,7 @@ resource "aws_cloudwatch_metric_alarm" "read_latency" {
   tags = local.common_tags
 }
 
-# Alarma: Write Latency alta
+# CloudWatch alarm for high write latency
 resource "aws_cloudwatch_metric_alarm" "write_latency" {
   count = var.enable_cloudwatch_alarms ? 1 : 0
 

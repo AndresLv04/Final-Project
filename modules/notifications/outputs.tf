@@ -1,8 +1,4 @@
-# ============================================
-# NOTIFICATIONS MODULE - OUTPUTS
-# ============================================
-
-# SNS
+# SNS topic for result-ready notifications
 output "sns_topic_arn" {
   description = "ARN del SNS topic result-ready"
   value       = aws_sns_topic.result_ready.arn
@@ -13,7 +9,7 @@ output "sns_topic_name" {
   value       = aws_sns_topic.result_ready.name
 }
 
-# SES
+# SES identity and configuration set
 output "ses_identity" {
   description = "Email identity verificado en SES"
   value       = aws_ses_email_identity.sender.email
@@ -29,7 +25,7 @@ output "ses_template_name" {
   value       = aws_ses_template.result_ready.name
 }
 
-# Bounces/Complaints
+# SES bounces/complaints topic
 output "ses_bounces_topic_arn" {
   description = "ARN del topic de bounces"
   value       = var.enable_ses_event_tracking ? aws_sns_topic.ses_bounces[0].arn : null

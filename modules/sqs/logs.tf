@@ -1,5 +1,4 @@
-
-// CLOUDWATCH ALARMS
+# CloudWatch alarms for SQS queues
 
 resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
   count = var.enable_cloudwatch_alarms ? 1 : 0
@@ -8,28 +7,28 @@ resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
   alarm_description   = "Alert when messages appear in DLQ"
   comparison_operator = "GreaterThanThreshold"
 
-  # Configuración del threshold
+  # Any message in DLQ should trigger the alarm
   evaluation_periods = 1
-  threshold          = 0 # Cualquier mensaje en DLQ es alerta
+  threshold          = 0
   treat_missing_data = "notBreaching"
 
-  # Métrica
+  # Monitors number of visible messages in DLQ
   metric_name = "ApproximateNumberOfMessagesVisible"
   namespace   = "AWS/SQS"
-  period      = 300 # 5 minutos
+  period      = 300
   statistic   = "Average"
 
   dimensions = {
     QueueName = aws_sqs_queue.dlq.name
   }
 
-  # Acciones (SNS topic para enviar emails)
+  # Send notification to SNS topic if an email is configured
   alarm_actions = var.alarm_email != "" ? [aws_sns_topic.alarms[0].arn] : []
 
   tags = local.common_tags
 }
 
-# Alarma: Cola muy llena (workers no están procesando rápido)
+# Alarm: main queue depth is too high (workers are not keeping up)
 resource "aws_cloudwatch_metric_alarm" "queue_depth" {
   count = var.enable_cloudwatch_alarms ? 1 : 0
 
@@ -37,8 +36,8 @@ resource "aws_cloudwatch_metric_alarm" "queue_depth" {
   alarm_description   = "Alert when queue has too many messages"
   comparison_operator = "GreaterThanThreshold"
 
-  evaluation_periods = 2   # 2 periodos consecutivos
-  threshold          = 100 # 100 mensajes
+  evaluation_periods = 2   # requires 2 consecutive periods
+  threshold          = 100 # 100 messages
   treat_missing_data = "notBreaching"
 
   metric_name = "ApproximateNumberOfMessagesVisible"
@@ -55,7 +54,7 @@ resource "aws_cloudwatch_metric_alarm" "queue_depth" {
   tags = local.common_tags
 }
 
-# Alarma: Mensajes muy viejos (workers no están procesando)
+# Alarm: messages are too old (workers are not processing)
 resource "aws_cloudwatch_metric_alarm" "message_age" {
   count = var.enable_cloudwatch_alarms ? 1 : 0
 
@@ -64,7 +63,7 @@ resource "aws_cloudwatch_metric_alarm" "message_age" {
   comparison_operator = "GreaterThanThreshold"
 
   evaluation_periods = 1
-  threshold          = 600 # 10 minutos
+  threshold          = 600 # 10 minutes
   treat_missing_data = "notBreaching"
 
   metric_name = "ApproximateAgeOfOldestMessage"
@@ -81,8 +80,7 @@ resource "aws_cloudwatch_metric_alarm" "message_age" {
   tags = local.common_tags
 }
 
-
-// SNS TOPIC PARA ALARMAS
+# SNS topic used to send CloudWatch alarm notifications
 resource "aws_sns_topic" "alarms" {
   count = var.enable_cloudwatch_alarms && var.alarm_email != "" ? 1 : 0
 
@@ -91,6 +89,7 @@ resource "aws_sns_topic" "alarms" {
   tags = local.common_tags
 }
 
+# Email subscription for SQS alarm notifications
 resource "aws_sns_topic_subscription" "alarms_email" {
   count = var.enable_cloudwatch_alarms && var.alarm_email != "" ? 1 : 0
 

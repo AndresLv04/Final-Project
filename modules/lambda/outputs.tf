@@ -1,8 +1,4 @@
-# ============================================
-# LAMBDA MODULE - OUTPUTS
-# ============================================
-
-# Lambda Ingest
+# Lambda Ingest outputs
 output "ingest_function_name" {
   description = "Nombre de Lambda Ingest"
   value       = aws_lambda_function.ingest.function_name
@@ -18,7 +14,7 @@ output "ingest_invoke_arn" {
   value       = aws_lambda_function.ingest.invoke_arn
 }
 
-# Lambda Notify
+# Lambda Notify outputs
 output "notify_function_name" {
   description = "Nombre de Lambda Notify"
   value       = aws_lambda_function.notify.function_name
@@ -29,7 +25,7 @@ output "notify_function_arn" {
   value       = aws_lambda_function.notify.arn
 }
 
-# Lambda PDF
+# Lambda PDF outputs
 output "pdf_function_name" {
   description = "Nombre de Lambda PDF"
   value       = aws_lambda_function.pdf_generator.function_name
@@ -45,7 +41,7 @@ output "pdf_invoke_arn" {
   value       = aws_lambda_function.pdf_generator.invoke_arn
 }
 
-# IAM Role
+# Lambda execution role output
 output "lambda_execution_role_arn" {
   description = "ARN del rol de ejecución de Lambda"
   value       = aws_iam_role.lambda_execution.arn
